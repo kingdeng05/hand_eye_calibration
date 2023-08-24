@@ -73,3 +73,6 @@ compile_commands.json
 *.tmp
 *~
 
+# build folder
+**/build/
+
