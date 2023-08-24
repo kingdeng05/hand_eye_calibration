@@ -1,0 +1,75 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.so
+*.out
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.sparc
+*.sparc64
+
+# Python Bytecode
+__pycache__/
+*.py[cod]
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment and Configuration
+.env
+.venv/
+venv/
+ENV/
+
+# Pybind11 Build
+pybind11/  # if you've cloned it inside your project
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+*.cmake
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+
+# IDE files
+.idea/
+.vscode/
+*.sublime-*
+*.swp
+*.swo
+
+# Other
+.DS_Store
+*.swp
+*.bak
+*.tmp
+*~
+
