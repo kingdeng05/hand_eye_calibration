@@ -13,6 +13,7 @@
 #include <gtsam/slam/PriorFactor.h>
 
 #include "dhe_factor.h"
+#include "rm_factor.h"
 
 namespace py = pybind11;
 using namespace gtsam;
@@ -45,6 +46,9 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
     py::class_<Rot3, boost::shared_ptr<Rot3>>(m, "Rot3")
         .def(py::init<>())
         .def(py::init<const Matrix3&>())
+        .def(py::init<double, double, double, double>())
+        .def("matrix", &Rot3::matrix)
+        .def_static("Random", &Rot3::Random)
         .def_static("Rodrigues", py::overload_cast<const Vector3&>(&Rot3::Rodrigues))
         .def_static("RzRyRx", py::overload_cast<const Vector3&>(&Rot3::Rodrigues))
         .def_static("Logmap", &Rot3::Logmap, py::arg(), py::arg()=OptionalJacobian<3, 3>())
@@ -91,17 +95,26 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
         .def(py::init<>())
         .def(py::init<Key, const Pose3&, const SharedNoiseModel&>());
 
-    // // Custom factors
-    py::class_<NonlinearFactor, boost::shared_ptr<NonlinearFactor>>(m, "NonlinearFactor");
-    py::class_<DHEFactor, boost::shared_ptr<DHEFactor>, NonlinearFactor>(m, "DHEFactor")
-        .def(py::init<Key, Key, Key, Key, Key, const SharedNoiseModel&>(),
-             py::arg("X"), py::arg("E_i"), py::arg("E_j"), py::arg("C_i"), py::arg("C_j"), py::arg("model"))
-            ;
-
     // noise models
     py::class_<noiseModel::Base, boost::shared_ptr<noiseModel::Base>>(m, "Base");
 
     py::class_<noiseModel::Diagonal, boost::shared_ptr<noiseModel::Diagonal>, noiseModel::Base>(m, "Diagonal")
         .def_static("sigmas", &noiseModel::Diagonal::Sigmas, py::arg(), py::arg()=true)
         ;
+
+    py::class_<NonlinearFactor, boost::shared_ptr<NonlinearFactor>>(m, "NonlinearFactor");
+
+    // Custom factors
+    py::class_<DHEFactor, boost::shared_ptr<DHEFactor>, NonlinearFactor>(m, "DHEFactor")
+        .def(py::init<Key, Key, Key, Key, Key, const SharedNoiseModel&>(),
+             py::arg("X"), py::arg("E_i"), py::arg("E_j"), py::arg("C_i"), py::arg("C_j"), py::arg("model"))
+            ;
+    py::class_<RMFactor, boost::shared_ptr<RMFactor>, NonlinearFactor>(m, "RMFactor")
+        .def(py::init<Key, Key, Key, Key, const Point3, const Point2, const SharedNoiseModel&, bool, bool, bool, bool>(),
+             py::arg("hand2eye"), py::arg("world2hand"), py::arg("target2world"), py::arg("intrinsic"), 
+             py::arg("point_in_target"), py::arg("measurement"), py::arg("model"),
+             py::arg("fix_hand2eye")=false, py::arg("fix_world2hand")=true, py::arg("fix_target2world")=false,
+             py::arg("fix_intrinsic")=true)
+            ;
+
 }

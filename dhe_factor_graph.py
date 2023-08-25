@@ -1,14 +1,12 @@
+import numpy as np
+
 from py_kinetic_backend import Diagonal, NonlinearFactorGraph, symbol, Pose3, Rot3
 from py_kinetic_backend import DHEFactor, Values, LevenbergMarquardtOptimizer
 
-import numpy as np
-
-def rad2deg(vec_deg):
-    return vec_deg / np.pi * 180
 
 def calibrate_dhe_factor_graph(calib_gt, poses_a, poses_b):
     # Create a noise model for the measurements
-    dhe_noise_model = Diagonal.sigmas(np.array([0.0017, 0.0017, 0.0017, 0.1, 0.1, 0.1]))
+    dhe_noise_model = Diagonal.sigmas(np.append(np.deg2rad([0.1, 0.1, 0.1]), 0.1 * np.ones(3)))
 
     # Initialize factor graph
     graph = NonlinearFactorGraph()
@@ -48,5 +46,5 @@ def calibrate_dhe_factor_graph(calib_gt, poses_a, poses_b):
     print("error change: {} -> {}".format(graph.error(initial), graph.error(result)))
 
     vec_diff = Pose3.logmap(Pose3(calib_gt).between(result.atPose3(calib_key)))
-    print("rot diff: {}".format(rad2deg(vec_diff[:3])))
+    print("rot diff: {}".format(np.rad2deg(vec_diff[:3])))
     print("t diff: {}".format(vec_diff[3:]))

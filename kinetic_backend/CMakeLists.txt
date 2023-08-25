@@ -26,7 +26,6 @@ add_executable(${CMAKE_PROJECT_NAME}_exe src/main.cpp)
 target_link_libraries(${CMAKE_PROJECT_NAME}_exe PUBLIC ${CMAKE_PROJECT_NAME}) 
 
 # Linking libraries
-# Linking libraries
 target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC gtsam ${Boost_LIBRARIES})  
 
 # To install the header files
@@ -41,7 +40,7 @@ install(TARGETS ${CMAKE_PROJECT_NAME}
 find_package(pybind11 REQUIRED)
 include_directories(${pybind11_INCLUDE_DIR})
 pybind11_add_module(py_kinetic_backend src/pybind.cpp)
-target_link_libraries(py_kinetic_backend PRIVATE ${CMAKE_PROJECT_NAME})
+target_link_libraries(py_kinetic_backend PRIVATE gtsam ${CMAKE_PROJECT_NAME})
 
 # To install py_kinetic_factors Python binding into python site-packages
 install(TARGETS py_kinetic_backend 
