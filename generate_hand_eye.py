@@ -125,7 +125,7 @@ def main():
             'track_position': 0.0,
             'robot_planning_pose': pose + ["base_link", "link_6", "autel_small_target"]
         }
-    with open('poses.yaml', 'w') as outfile:
+    with open('.poses.yaml', 'w') as outfile:
         yaml.dump(poses_fmt, outfile)
 
 

@@ -76,3 +76,6 @@ compile_commands.json
 # build folder
 **/build/
 
+# hidden files
+*.*
+
