@@ -42,7 +42,7 @@ public:
       key_intrinsic
     ),
     pt_3d_(pt_3d), measured_(measured), fix_hand2eye_(fix_hand2eye),
-    fix_world2hand_(fix_world2hand), fix_target2world_(fix_world2hand),
+    fix_world2hand_(fix_world2hand), fix_target2world_(fix_target2world),
     fix_intrinsic_(fix_intrinsic) {}
 
   Vector evaluateError(const Pose3& hand2eye,
@@ -56,19 +56,20 @@ public:
   {
     // tmp jacobian
     Matrix D_t2g_w2h, D_t2g_t2w, D_t2e_h2e, D_t2e_t2g;
-    Matrix D_camera_t2e, D_camera_intr, D_proj_camera;
+    Matrix D_e2t_t2e, D_proj_e2t, D_proj_intr;
 
     // pose3 transform 
     Pose3 t2g = world2hand.compose(target2world, D_t2g_w2h, D_t2g_t2w);
     Pose3 t2e = hand2eye.compose(t2g, D_t2e_h2e, D_t2e_t2g);
-    auto camera = PinholeCamera<Cal3_S2>::Create(t2e, intrinsic, D_camera_t2e, D_camera_intr);
-    Point2 proj = camera.project(pt_3d_, D_proj_camera);
+    Pose3 e2t = t2e.inverse(D_e2t_t2e);
+    PinholeCamera<Cal3_S2> camera(e2t, intrinsic);
+    Point2 proj = camera.project(pt_3d_, D_proj_e2t, boost::none, D_proj_intr);
 
     if (H_hand2eye) {
       if (fix_hand2eye_) {
         *H_hand2eye = gtsam::Matrix26::Zero();
       } else {
-        *H_hand2eye = D_proj_camera * D_camera_t2e * D_t2e_h2e; 
+        *H_hand2eye = D_proj_e2t * D_e2t_t2e * D_t2e_h2e; 
       }
     }
 
@@ -76,7 +77,7 @@ public:
       if (fix_world2hand_) {
         *H_world2hand = gtsam::Matrix26::Zero();
       } else {
-        *H_world2hand = D_proj_camera * D_camera_t2e * D_t2e_t2g * D_t2g_w2h;
+        *H_world2hand = D_proj_e2t * D_e2t_t2e * D_t2e_t2g * D_t2g_w2h;
       }
     }
 
@@ -84,7 +85,7 @@ public:
       if (fix_target2world_) {
         *H_target2world = gtsam::Matrix26::Zero();
       } else {
-        *H_target2world = D_proj_camera * D_camera_t2e * D_t2e_t2g * D_t2g_t2w;
+        *H_target2world = D_proj_e2t * D_e2t_t2e * D_t2e_t2g * D_t2g_t2w;
       }
     }
 
@@ -92,7 +93,7 @@ public:
       if (fix_intrinsic_) {
         *H_intrinsic = gtsam::Matrix25::Zero();
       } else {
-        *H_intrinsic = D_proj_camera * D_camera_intr;
+        *H_intrinsic = D_proj_intr;
       }
     }
 

@@ -4,6 +4,8 @@ from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+TARGET_CENTER = [3, 0, 0.8]
+
 def quat_to_rot(qx, qy, qz, qw):
     # Convert quaternion to rotation matrix
     return np.array([
@@ -49,10 +51,7 @@ def set_axes_equal(ax):
     ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
 
-def vis_traj():
-    with open("poses.yaml", 'r') as f:
-        poses_data = yaml.load(f, Loader=yaml.FullLoader)
-
+def vis_traj(poses):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
@@ -60,8 +59,8 @@ def vis_traj():
     ax.quiver(0, 0, 0, 0, 1, 0, color='g', length=0.2)
     ax.quiver(0, 0, 0, 0, 0, 1, color='b', length=0.2)
 
-    for i, pose in poses_data.items():
-        x, y, z, qx, qy, qz, qw, _, _, _ = pose["robot_planning_pose"]
+    for i, pose in enumerate(poses):
+        x, y, z, qx, qy, qz, qw = pose
         R = quat_to_rot(qx, qy, qz, qw)
 
         origin = np.array([x, y, z])
@@ -81,10 +80,10 @@ def vis_traj():
     set_axes_equal(ax)
     plt.show()
 
-def main():
-    poses = {}
-    target_point = [3, 0, 0.8]
-    
+
+def generate_traj():
+    target_point = TARGET_CENTER 
+    poses_num = 100
     key_points = {
         0: [0.7, -1, 1., 0., 0., 0., 1.],
         25: [0.7, 1., 1, 0., 0., 0., 1.],
@@ -93,8 +92,9 @@ def main():
         99: [0.7, -1., 1, 0., 0., 0., 1.]
     }
     
+    poses = [] 
     indices = list(key_points.keys())
-    for i in range(100):
+    for i in range(poses_num):
         idx1 = max([x for x in indices if x <= i])
         idx2 = min([x for x in indices if x >= i])
         
@@ -106,17 +106,27 @@ def main():
         
         quaternion = point_to_axis_quaternion(pose, target_point, [1, 0, 0])
         pose[3:7] = quaternion
-        
-        poses[i] = {
+        poses.append(pose)
+
+    return poses 
+ 
+def main():
+    # generate trajectories
+    poses = generate_traj()       
+
+    # visualize the traj
+    vis_traj(poses)
+
+    # dump that a robot plan file
+    poses_fmt = dict() 
+    for i, pose in enumerate(poses):
+        poses_fmt[i] = {
             'tt_angle': 0.0,
             'track_position': 0.0,
             'robot_planning_pose': pose + ["base_link", "link_6", "autel_small_target"]
         }
-        
     with open('poses.yaml', 'w') as outfile:
-        yaml.dump(poses, outfile)
-
-    vis_traj()
+        yaml.dump(poses_fmt, outfile)
 
 
 if __name__ == '__main__':

@@ -2,15 +2,20 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/eigen.h>
+#include <pybind11/operators.h>  // Necessary for py::self
 
+#include <gtsam/base/OptionalJacobian.h>
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/geometry/Pose3.h>
 #include <gtsam/geometry/Point3.h>
+#include <gtsam/geometry/Point2.h>
 #include <gtsam/geometry/Rot3.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 #include <gtsam/slam/PriorFactor.h>
+#include <gtsam/geometry/Cal3_S2.h>
+#include <gtsam/geometry/PinholeCamera.h>
 
 #include "dhe_factor.h"
 #include "rm_factor.h"
@@ -38,6 +43,10 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
     }, "Create a new key using character and index");
 
     // OptionalJacobian
+    py::class_<OptionalJacobian<2, 3>>(m, "OptionalJacobian23");
+    py::class_<OptionalJacobian<2, 5>>(m, "OptionalJacobian25");
+    py::class_<OptionalJacobian<2, 6>>(m, "OptionalJacobian26");
+    py::class_<OptionalJacobian<2, 11>>(m, "OptionalJacobian211");
     py::class_<OptionalJacobian<3, 3>>(m, "OptionalJacobian33");
     py::class_<OptionalJacobian<3, 6>>(m, "OptionalJacobian36");
     py::class_<OptionalJacobian<6, 6>>(m, "OptionalJacobian66");
@@ -47,10 +56,11 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
         .def(py::init<>())
         .def(py::init<const Matrix3&>())
         .def(py::init<double, double, double, double>())
+        .def(py::self * py::self)
         .def("matrix", &Rot3::matrix)
         .def_static("Random", &Rot3::Random)
         .def_static("Rodrigues", py::overload_cast<const Vector3&>(&Rot3::Rodrigues))
-        .def_static("RzRyRx", py::overload_cast<const Vector3&>(&Rot3::Rodrigues))
+        .def_static("RzRyRx", py::overload_cast<const Vector&>(&Rot3::RzRyRx))
         .def_static("Logmap", &Rot3::Logmap, py::arg(), py::arg()=OptionalJacobian<3, 3>())
         .def_static("Expmap", &Rot3::Expmap, py::arg(), py::arg()=OptionalJacobian<3, 3>())
         ;
@@ -60,11 +70,16 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
         .def(py::init<>())
         .def(py::init<const Rot3&, const Point3&>())
         .def(py::init<const Matrix&>())
+        .def(py::self * py::self)
         .def("matrix", &Pose3::matrix)
         .def("rotation", &Pose3::rotation, py::arg()=OptionalJacobian<3, 6>())
         .def("translation", &Pose3::translation, py::arg()=OptionalJacobian<3, 6>())
         .def("compose", py::overload_cast<const Pose3&>(&Pose3::compose, py::const_))
         .def("between", py::overload_cast<const Pose3&>(&Pose3::between, py::const_))
+        .def("transform_to", &Pose3::transformTo, py::arg(), 
+             py::arg()=OptionalJacobian<3, 6>(), py::arg()=OptionalJacobian<3, 3>())
+        .def("transform_from", &Pose3::transformFrom, py::arg(), 
+             py::arg()=OptionalJacobian<3, 6>(), py::arg()=OptionalJacobian<3, 3>())
         .def_static("logmap", &Pose3::Logmap, py::arg(), py::arg()=OptionalJacobian<6, 6>())
         .def_static("expmap", &Pose3::Expmap, py::arg(), py::arg()=OptionalJacobian<6, 6>())
         ;
@@ -74,8 +89,11 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
         .def(py::init<>())
         // .def("insert", static_cast<void (gtsam::Values::*)(gtsam::Key, const gtsam::Value&)>(&gtsam::Values::insert))
         .def("insertPose3", &gtsam::Values::insert<Pose3>)
+        .def("insertCal3_S2", &gtsam::Values::insert<Cal3_S2>)
         // .def("atPose3", static_cast<const Pose3& (Values::*)(Key) const>(&Values::at));
-        .def("atPose3", &Values::at<Pose3>);
+        .def("atPose3", &Values::at<Pose3>)
+        .def("atCal3_S2", &Values::at<Cal3_S2>)
+        ;
 
     // NonlinearFactorGraph
     py::class_<NonlinearFactorGraph, boost::shared_ptr<NonlinearFactorGraph>>(m, "NonlinearFactorGraph")
@@ -97,12 +115,22 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
 
     // noise models
     py::class_<noiseModel::Base, boost::shared_ptr<noiseModel::Base>>(m, "Base");
-
     py::class_<noiseModel::Diagonal, boost::shared_ptr<noiseModel::Diagonal>, noiseModel::Base>(m, "Diagonal")
         .def_static("sigmas", &noiseModel::Diagonal::Sigmas, py::arg(), py::arg()=true)
         ;
 
+    // non linear factor
     py::class_<NonlinearFactor, boost::shared_ptr<NonlinearFactor>>(m, "NonlinearFactor");
+
+    // camera calibration
+    py::class_<PinholeCamera<Cal3_S2>, boost::shared_ptr<PinholeCamera<Cal3_S2>>>(m, "PinholeCameraCal3_S2")
+        .def(py::init<const Pose3&, const Cal3_S2&>())
+        .def("project", static_cast<Point2 (PinholeCamera<Cal3_S2>::*)(const Point3&, OptionalJacobian<2, 11>, OptionalJacobian<2, 3>) const>(&PinholeCamera<Cal3_S2>::project2),
+            py::arg(), py::arg()=OptionalJacobian<2, 11>(),
+            py::arg()=OptionalJacobian<2, 3>())
+        ;
+    py::class_<Cal3_S2, boost::shared_ptr<Cal3_S2>>(m, "Cal3_S2")
+        .def(py::init<const Vector&>());
 
     // Custom factors
     py::class_<DHEFactor, boost::shared_ptr<DHEFactor>, NonlinearFactor>(m, "DHEFactor")

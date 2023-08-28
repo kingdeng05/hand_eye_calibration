@@ -1,0 +1,1400 @@
+0:
+  robot_planning_pose:
+  - 0.7
+  - -1
+  - 1.0
+  - -0.0
+  - 0.0406277830893469
+  - 0.20313891544673454
+  - 0.9783066821157717
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+1:
+  robot_planning_pose:
+  - 0.7
+  - -0.9199999999999999
+  - 1.0
+  - -0.0
+  - 0.04100902510965141
+  - 0.1886415155043965
+  - 0.9811893999059308
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+2:
+  robot_planning_pose:
+  - 0.7
+  - -0.8400000000000001
+  - 1.0
+  - -0.0
+  - 0.04136946580514661
+  - 0.17375175638161583
+  - 0.9839201667072895
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+3:
+  robot_planning_pose:
+  - 0.7
+  - -0.76
+  - 1.0
+  - -0.0
+  - 0.04170673155608658
+  - 0.158485579913129
+  - 0.9864800400933147
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+4:
+  robot_planning_pose:
+  - 0.7
+  - -0.6799999999999999
+  - 1.0
+  - -0.0
+  - 0.04201846981517667
+  - 0.14286279737160068
+  - 0.9888501753660925
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+5:
+  robot_planning_pose:
+  - 0.7
+  - -0.6000000000000001
+  - 1.0
+  - -0.0
+  - 0.04230238838072113
+  - 0.12690716514216344
+  - 0.9910121489532135
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+6:
+  robot_planning_pose:
+  - 0.7
+  - -0.52
+  - 1.0
+  - -0.0
+  - 0.042556297533420384
+  - 0.11064637358689304
+  - 0.9929483075932587
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+7:
+  robot_planning_pose:
+  - 0.7
+  - -0.43999999999999995
+  - 1.0
+  - -0.0
+  - 0.04277815380165597
+  - 0.09411193836364314
+  - 0.9946421329376509
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+8:
+  robot_planning_pose:
+  - 0.7
+  - -0.35999999999999993
+  - 1.0
+  - -0.0
+  - 0.04296610385729496
+  - 0.07733898694313095
+  - 0.99607860885471
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+9:
+  robot_planning_pose:
+  - 0.7
+  - -0.28
+  - 1.0
+  - -0.0
+  - 0.043118526846283395
+  - 0.06036593758479676
+  - 0.9972445769329181
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+10:
+  robot_planning_pose:
+  - 0.7
+  - -0.19999999999999996
+  - 1.0
+  - -0.0
+  - 0.04323407335413526
+  - 0.04323407335413526
+  - 0.9981290647017642
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+11:
+  robot_planning_pose:
+  - 0.7
+  - -0.12000000000000005
+  - 1.0
+  - -0.0
+  - 0.04331169921874024
+  - 0.025987019531244167
+  - 0.9987235711280014
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+12:
+  robot_planning_pose:
+  - 0.7
+  - -0.040000000000000036
+  - 1.0
+  - -0.0
+  - 0.0433506925447231
+  - 0.00867013850894463
+  - 0.9990222951236517
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+13:
+  robot_planning_pose:
+  - 0.7
+  - 0.040000000000000036
+  - 1.0
+  - 0.0
+  - 0.0433506925447231
+  - -0.00867013850894463
+  - 0.9990222951236517
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+14:
+  robot_planning_pose:
+  - 0.7
+  - 0.1200000000000001
+  - 1.0
+  - 0.0
+  - 0.043311699218740236
+  - -0.025987019531244174
+  - 0.9987235711280015
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+15:
+  robot_planning_pose:
+  - 0.7
+  - 0.19999999999999996
+  - 1.0
+  - 0.0
+  - 0.04323407335413526
+  - -0.04323407335413526
+  - 0.9981290647017642
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+16:
+  robot_planning_pose:
+  - 0.7
+  - 0.28
+  - 1.0
+  - 0.0
+  - 0.043118526846283395
+  - -0.06036593758479676
+  - 0.9972445769329181
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+17:
+  robot_planning_pose:
+  - 0.7
+  - 0.3600000000000001
+  - 1.0
+  - 0.0
+  - 0.04296610385729495
+  - -0.07733898694313096
+  - 0.99607860885471
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+18:
+  robot_planning_pose:
+  - 0.7
+  - 0.43999999999999995
+  - 1.0
+  - 0.0
+  - 0.04277815380165597
+  - -0.09411193836364314
+  - 0.9946421329376509
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+19:
+  robot_planning_pose:
+  - 0.7
+  - 0.52
+  - 1.0
+  - 0.0
+  - 0.042556297533420384
+  - -0.11064637358689304
+  - 0.9929483075932587
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+20:
+  robot_planning_pose:
+  - 0.7
+  - 0.6000000000000001
+  - 1.0
+  - 0.0
+  - 0.04230238838072113
+  - -0.12690716514216344
+  - 0.9910121489532135
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+21:
+  robot_planning_pose:
+  - 0.7
+  - 0.6799999999999999
+  - 1.0
+  - 0.0
+  - 0.04201846981517667
+  - -0.14286279737160068
+  - 0.9888501753660925
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+22:
+  robot_planning_pose:
+  - 0.7
+  - 0.76
+  - 1.0
+  - 0.0
+  - 0.04170673155608658
+  - -0.158485579913129
+  - 0.9864800400933147
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+23:
+  robot_planning_pose:
+  - 0.7
+  - 0.8400000000000001
+  - 1.0
+  - 0.0
+  - 0.04136946580514661
+  - -0.17375175638161583
+  - 0.9839201667072895
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+24:
+  robot_planning_pose:
+  - 0.7
+  - 0.9199999999999999
+  - 1.0
+  - 0.0
+  - 0.04100902510965141
+  - -0.1886415155043965
+  - 0.9811893999059308
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+25:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 1
+  - 0.0
+  - 0.0406277830893469
+  - -0.20313891544673454
+  - 0.9783066821157717
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+26:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.976
+  - 0.0
+  - 0.0357718659334028
+  - -0.20324923825797053
+  - 0.978473362312535
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+27:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.9520000000000001
+  - 0.0
+  - 0.03090853795940103
+  - -0.20334564446974365
+  - 0.978619032696788
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+28:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.928
+  - 0.0
+  - 0.026038792453845227
+  - -0.20342806604566582
+  - 0.9787435840057731
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+29:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.9039999999999999
+  - 0.0
+  - 0.021163630243755133
+  - -0.20349644465149194
+  - 0.9788469225415728
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+30:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.8800000000000001
+  - 0.0
+  - 0.016284058541981023
+  - -0.20355073177476263
+  - 0.978928970370864
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+31:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.856
+  - 0.0
+  - 0.011401089774181824
+  - -0.20359088882467566
+  - 0.9789896654916943
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+32:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.832
+  - 0.0
+  - 0.006515740390776619
+  - -0.20361688721176988
+  - 0.979028961966575
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+33:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.8079999999999999
+  - 0.0
+  - 0.0016290296672567554
+  - -0.2036287084070971
+  - 0.9790468300213226
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+34:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.784
+  - 0.0
+  - -0.0032580215036901524
+  - -0.2036263439806343
+  - 0.9790432561092293
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+35:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.76
+  - 0.0
+  - -0.008144391824751011
+  - -0.20360979561877515
+  - 0.9790182429402864
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+36:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.7360000000000001
+  - 0.0
+  - -0.01302906080773312
+  - -0.20357907512083018
+  - 0.9789718094753371
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+37:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.712
+  - 0.0
+  - -0.017911009984960303
+  - -0.2035342043745487
+  - 0.9789039908851829
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+38:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.688
+  - 0.0
+  - -0.02278922411480578
+  - -0.2034752153107657
+  - 0.9788148384748173
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+39:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.6639999999999999
+  - 0.0
+  - -0.02766269237788118
+  - -0.20340214983736143
+  - 0.9787044195731142
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+40:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.64
+  - 0.0
+  - -0.03253040956044885
+  - -0.20331505975280528
+  - 0.9785728173884367
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+41:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.616
+  - 0.0
+  - -0.03739137722169514
+  - -0.20321400663964748
+  - 0.9784201308307828
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+42:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.592
+  - 0.0
+  - -0.0422446048415846
+  - -0.20309906173838743
+  - 0.9782464743012188
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+43:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.5680000000000001
+  - 0.0
+  - -0.04708911094612072
+  - -0.2029703058022445
+  - 0.9780519774494847
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+44:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.544
+  - 0.0
+  - -0.05192392420695387
+  - -0.20282782893341353
+  - 0.9778367849007873
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+45:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.52
+  - 0.0
+  - -0.05674808451241168
+  - -0.2026717304014703
+  - 0.9776010559529107
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+46:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.49600000000000005
+  - 0.0
+  - -0.06156064400717448
+  - -0.2025021184446529
+  - 0.9773449642448923
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+47:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.47200000000000003
+  - 0.0
+  - -0.0663606680979765
+  - -0.20231911005480638
+  - 0.9770686973986125
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+48:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.448
+  - 0.0
+  - -0.07114723642288555
+  - -0.20212283074683388
+  - 0.976772456634744
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+49:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.42400000000000004
+  - 0.0
+  - -0.0759194437818946
+  - -0.20191341431354945
+  - 0.9764564563645901
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+50:
+  robot_planning_pose:
+  - 0.7
+  - 1.0
+  - 0.4
+  - 0.0
+  - -0.08067640102674929
+  - -0.2016910025668732
+  - 0.9761209237594186
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+51:
+  robot_planning_pose:
+  - 0.7
+  - 0.9199999999999999
+  - 0.4
+  - 0.0
+  - -0.08142029270990507
+  - -0.18726667323278162
+  - 0.978928970370864
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+52:
+  robot_planning_pose:
+  - 0.7
+  - 0.8400000000000001
+  - 0.4
+  - 0.0
+  - -0.08212319482088841
+  - -0.17245870912386563
+  - 0.9815873748779271
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+53:
+  robot_planning_pose:
+  - 0.7
+  - 0.76
+  - 0.4
+  - 0.0
+  - -0.08278054455959204
+  - -0.15728303466322485
+  - 0.9840779585223643
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+54:
+  robot_planning_pose:
+  - 0.7
+  - 0.6799999999999999
+  - 0.4
+  - 0.0
+  - -0.08338782736315864
+  - -0.14175930651736968
+  - 0.986382668776863
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+55:
+  robot_planning_pose:
+  - 0.7
+  - 0.6000000000000001
+  - 0.4000000000000001
+  - 0.0
+  - -0.08394065147767228
+  - -0.12591097721650846
+  - 0.9884838859819051
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+56:
+  robot_planning_pose:
+  - 0.7
+  - 0.52
+  - 0.4
+  - 0.0
+  - -0.08443482764674855
+  - -0.10976527594077311
+  - 0.9903647530470325
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+57:
+  robot_planning_pose:
+  - 0.7
+  - 0.43999999999999995
+  - 0.4
+  - 0.0
+  - -0.08486645159214298
+  - -0.09335309675135728
+  - 0.9920095184629482
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+58:
+  robot_planning_pose:
+  - 0.7
+  - 0.35999999999999993
+  - 0.39999999999999997
+  - 0.0
+  - -0.08523198649156395
+  - -0.07670878784240755
+  - 0.9934038807788352
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+59:
+  robot_planning_pose:
+  - 0.7
+  - 0.28
+  - 0.4
+  - 0.0
+  - -0.0855283423107632
+  - -0.05986983961753425
+  - 0.9945353211252699
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+60:
+  robot_planning_pose:
+  - 0.7
+  - 0.19999999999999996
+  - 0.4
+  - 0.0
+  - -0.08575294867108477
+  - -0.04287647433554237
+  - 0.995393409533521
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+61:
+  robot_planning_pose:
+  - 0.7
+  - 0.12000000000000005
+  - 0.4
+  - 0.0
+  - -0.08590381796970308
+  - -0.025771145390910934
+  - 0.9959700708974485
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+62:
+  robot_planning_pose:
+  - 0.7
+  - 0.040000000000000036
+  - 0.4
+  - 0.0
+  - -0.08597959573972723
+  - -0.008597959573972731
+  - 0.9962597975466025
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+63:
+  robot_planning_pose:
+  - 0.7
+  - -0.040000000000000036
+  - 0.4
+  - 0.0
+  - -0.08597959573972723
+  - 0.008597959573972731
+  - 0.9962597975466025
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+64:
+  robot_planning_pose:
+  - 0.7
+  - -0.1200000000000001
+  - 0.4
+  - 0.0
+  - -0.08590381796970308
+  - 0.025771145390910948
+  - 0.9959700708974485
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+65:
+  robot_planning_pose:
+  - 0.7
+  - -0.19999999999999996
+  - 0.4
+  - 0.0
+  - -0.08575294867108477
+  - 0.04287647433554237
+  - 0.995393409533521
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+66:
+  robot_planning_pose:
+  - 0.7
+  - -0.28
+  - 0.4
+  - 0.0
+  - -0.0855283423107632
+  - 0.05986983961753425
+  - 0.9945353211252699
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+67:
+  robot_planning_pose:
+  - 0.7
+  - -0.3600000000000001
+  - 0.4
+  - 0.0
+  - -0.08523198649156392
+  - 0.07670878784240756
+  - 0.9934038807788352
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+68:
+  robot_planning_pose:
+  - 0.7
+  - -0.43999999999999995
+  - 0.4
+  - 0.0
+  - -0.08486645159214298
+  - 0.09335309675135728
+  - 0.9920095184629482
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+69:
+  robot_planning_pose:
+  - 0.7
+  - -0.52
+  - 0.4
+  - 0.0
+  - -0.08443482764674855
+  - 0.10976527594077311
+  - 0.9903647530470325
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+70:
+  robot_planning_pose:
+  - 0.7
+  - -0.6000000000000001
+  - 0.4
+  - 0.0
+  - -0.08394065147767228
+  - 0.12591097721650843
+  - 0.9884838859819051
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+71:
+  robot_planning_pose:
+  - 0.7
+  - -0.6799999999999999
+  - 0.4
+  - 0.0
+  - -0.08338782736315864
+  - 0.14175930651736968
+  - 0.986382668776863
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+72:
+  robot_planning_pose:
+  - 0.7
+  - -0.76
+  - 0.4
+  - 0.0
+  - -0.08278054455959204
+  - 0.15728303466322485
+  - 0.9840779585223643
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+73:
+  robot_planning_pose:
+  - 0.7
+  - -0.8400000000000001
+  - 0.4
+  - 0.0
+  - -0.08212319482088841
+  - 0.17245870912386563
+  - 0.9815873748779271
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+74:
+  robot_planning_pose:
+  - 0.7
+  - -0.9199999999999999
+  - 0.4
+  - 0.0
+  - -0.08142029270990507
+  - 0.18726667323278162
+  - 0.978928970370864
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+75:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.4
+  - 0.0
+  - -0.08067640102674929
+  - 0.2016910025668732
+  - 0.9761209237594186
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+76:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.42500000000000004
+  - 0.0
+  - -0.07572090017365737
+  - 0.20192240046308632
+  - 0.9764700146282609
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+77:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.45
+  - 0.0
+  - -0.07074889185703184
+  - 0.2021396910200909
+  - 0.97679790111123
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+78:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.47500000000000003
+  - 0.0
+  - -0.06576138221624189
+  - 0.20234271451151348
+  - 0.9771043273331265
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+79:
+  robot_planning_pose:
+  - 0.7000000000000001
+  - -1.0
+  - 0.5
+  - 0.0
+  - -0.06075939620347358
+  - 0.20253132067824522
+  - 0.977389052484892
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+80:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.525
+  - 0.0
+  - -0.055743976487138934
+  - 0.2027053690441416
+  - 0.9776518513489757
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+81:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.55
+  - 0.0
+  - -0.05071618230352897
+  - 0.20286472921411589
+  - 0.97789251479569
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+82:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.575
+  - 0.0
+  - -0.045677088259513214
+  - 0.20300928115339195
+  - 0.9781108502484346
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+83:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.6000000000000001
+  - 0.0
+  - -0.0406277830893469
+  - 0.20313891544673454
+  - 0.9783066821157717
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+84:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.625
+  - 0.0
+  - -0.03556936836889674
+  - 0.20325353353655273
+  - 0.9784798521884562
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+85:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.65
+  - 0.0
+  - -0.030502957190827257
+  - 0.20335304793884837
+  - 0.9786302199996662
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+86:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.675
+  - 0.0
+  - -0.02542967280450874
+  - 0.20343738243606993
+  - 0.9787576631468159
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+87:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.7
+  - 0.0
+  - -0.020350647224602527
+  - 0.20350647224602508
+  - 0.9788620775735045
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+88:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.725
+  - 0.0
+  - -0.015267019812457865
+  - 0.20356026416610465
+  - 0.9789433778103163
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+89:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.75
+  - 0.0
+  - -0.010179935834608857
+  - 0.20359871669217697
+  - 0.9790014971733709
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+90:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.775
+  - 0.0
+  - -0.005090545002790512
+  - 0.20362180011162026
+  - 0.9790363879197126
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+91:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.8
+  - 0.0
+  - 0.0
+  - 0.20362949657007576
+  - 0.9790480213588185
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+92:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.8250000000000001
+  - -0.0
+  - 0.005090545002790512
+  - 0.20362180011162026
+  - 0.9790363879197126
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+93:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.85
+  - -0.0
+  - 0.010179935834608834
+  - 0.20359871669217697
+  - 0.979001497173371
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+94:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.875
+  - -0.0
+  - 0.015267019812457842
+  - 0.20356026416610465
+  - 0.9789433778103163
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+95:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.9
+  - -0.0
+  - 0.020350647224602506
+  - 0.20350647224602508
+  - 0.9788620775735045
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+96:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.925
+  - -0.0
+  - 0.02542967280450874
+  - 0.20343738243606993
+  - 0.9787576631468159
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+97:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.95
+  - -0.0
+  - 0.03050295719082724
+  - 0.20335304793884837
+  - 0.9786302199996662
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+98:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 0.975
+  - -0.0
+  - 0.035569368368896716
+  - 0.20325353353655273
+  - 0.9784798521884562
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
+99:
+  robot_planning_pose:
+  - 0.7
+  - -1.0
+  - 1
+  - -0.0
+  - 0.0406277830893469
+  - 0.20313891544673454
+  - 0.9783066821157717
+  - base_link
+  - link_6
+  - autel_small_target
+  track_position: 0.0
+  tt_angle: 0.0
