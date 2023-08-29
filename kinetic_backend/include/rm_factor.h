@@ -8,7 +8,6 @@
 #include <gtsam/nonlinear/NonlinearFactor.h>
 #include <gtsam/linear/NoiseModel.h>
 #include <gtsam/base/numericalDerivative.h>
-#include <gtsam/geometry/Cal3_S2.h>
 #include <gtsam/geometry/PinholeCamera.h>
 
 #include <boost/optional.hpp>
@@ -21,12 +20,12 @@ using gtsam::Point2;
 using gtsam::SharedNoiseModel;
 using gtsam::Vector;
 using gtsam::Matrix;
-using gtsam::Cal3_S2;
 using gtsam::PinholeCamera;
 
 namespace kinetic_backend {
 
-class RMFactor: public NoiseModelFactor4<Pose3, Pose3, Pose3, Cal3_S2> {
+template<class Calibration>
+class RMFactor: public NoiseModelFactor4<Pose3, Pose3, Pose3, Calibration> {
 
 public:
   RMFactor(Key key_hand2eye, Key key_world2hand, Key key_target2world,
@@ -34,7 +33,7 @@ public:
            const SharedNoiseModel& model, bool fix_hand2eye=false, 
            bool fix_world2hand=true, bool fix_target2world=false,
            bool fix_intrinsic=true):
-    NoiseModelFactor4<Pose3, Pose3, Pose3, Cal3_S2>(
+    NoiseModelFactor4<Pose3, Pose3, Pose3, Calibration>(
       model,
       key_hand2eye, 
       key_world2hand,
@@ -48,7 +47,7 @@ public:
   Vector evaluateError(const Pose3& hand2eye,
                        const Pose3& world2hand,
                        const Pose3& target2world,
-                       const Cal3_S2& intrinsic,
+                       const Calibration& intrinsic,
                        boost::optional<Matrix&> H_hand2eye = boost::none,
                        boost::optional<Matrix&> H_world2hand = boost::none,
                        boost::optional<Matrix&> H_target2world = boost::none,
@@ -62,7 +61,7 @@ public:
     Pose3 t2g = world2hand.compose(target2world, D_t2g_w2h, D_t2g_t2w);
     Pose3 t2e = hand2eye.compose(t2g, D_t2e_h2e, D_t2e_t2g);
     Pose3 e2t = t2e.inverse(D_e2t_t2e);
-    PinholeCamera<Cal3_S2> camera(e2t, intrinsic);
+    PinholeCamera<Calibration> camera(e2t, intrinsic);
     Point2 proj = camera.project(pt_3d_, D_proj_e2t, boost::none, D_proj_intr);
 
     if (H_hand2eye) {

@@ -1,7 +1,7 @@
 import numpy as np
 
 from py_kinetic_backend import Diagonal, NonlinearFactorGraph, symbol, Cal3_S2
-from py_kinetic_backend import RMFactor, Values, LevenbergMarquardtOptimizer
+from py_kinetic_backend import RMFactorCal3_S2, RMFactorCal3DS2, Values, LevenbergMarquardtOptimizer
 from py_kinetic_backend import Pose3 
 
 def calib_rm_factor_graph(calib_init, t2w_init, k_init, hand_poses, pts):
@@ -22,7 +22,7 @@ def calib_rm_factor_graph(calib_init, t2w_init, k_init, hand_poses, pts):
         initials.insertPose3(hp_key, Pose3(np.linalg.inv(pose)))
         pts_2d, pts_3d = pts["2d"], pts["3d"]
         for pt_2d, pt_3d in zip(pts_2d, pts_3d):
-            rm_factor = RMFactor(
+            rm_factor = RMFactorCal3_S2(
                 calib_key,
                 hp_key,
                 t2w_key,

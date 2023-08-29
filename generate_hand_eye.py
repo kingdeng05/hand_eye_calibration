@@ -4,6 +4,8 @@ from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+from randomised_traj_gen import traj_gen 
+
 TARGET_CENTER = [3, 0, 0.8]
 
 def quat_to_rot(qx, qy, qz, qw):
@@ -112,7 +114,8 @@ def generate_traj():
  
 def main():
     # generate trajectories
-    poses = generate_traj()       
+    # poses = generate_traj()       
+    poses = traj_gen()
 
     # visualize the traj
     vis_traj(poses)

@@ -5,12 +5,14 @@ from matplotlib import pyplot as plt
 
 from py_kinetic_backend import Pose3, Rot3, PinholeCameraCal3_S2, Cal3_S2
 
-from generate_hand_eye import generate_traj, TARGET_CENTER
+# from randomised_traj_gen import traj_gen 
 from target import CheckerBoardTarget
 from rm_factor_graph import calib_rm_factor_graph
 
 np.random.seed(5)
 vis_target = False
+IMG_WIDTH = 1920 
+IMG_HEIGHT = 1200 
 
 def draw_coordinates(T):
     fig = plt.figure()
@@ -41,18 +43,18 @@ def draw_coordinates(T):
 def create_calib_gt():
     # RzRyRx first rotate around z axis, then y axis, lastly x axis.
     calib_rot_gt = Rot3.RzRyRx([-np.pi/2, 0, -np.pi/2])
-    calib_t_gt = np.array([0.3, 0, 0])
+    calib_t_gt = np.array([0.15, 0, 0])
     calib_gt = Pose3(calib_rot_gt, calib_t_gt).matrix()
     return calib_gt
 
 def create_t2w_gt():
     calib_rot_gt = Rot3.RzRyRx([-np.pi/2, 0, -np.pi/2])
-    calib_t_gt = np.array([3, 0, 0.8])
+    calib_t_gt = np.array([1.5, 0, 0.5])
     t2w = Pose3(calib_rot_gt, calib_t_gt).matrix()
     return t2w 
 
 def create_intrinsic():
-    return np.array([850, 850, 0, 512, 288])
+    return np.array([1188, 1188, 0, IMG_WIDTH/2, IMG_HEIGHT/2])
 
 def perturb_by_gaussian(pose, noise, apply_right=True):
     # [rx, ry, rz, x, y, z]
@@ -84,7 +86,7 @@ def main():
     t2w_noise = np.array([0.001, 0.001, 0.001, 0.01, 0.01, 0.01])
     t2w_pert = perturb_by_gaussian(t2w_gt, t2w_noise)
 
-    trajs = parse_trajectory(generate_traj())
+    trajs = parse_trajectory(traj_gen())
     pts_target_3d = CheckerBoardTarget(6, 8, 0.1).get_pts_3d()
 
     pts_all = []
@@ -95,14 +97,14 @@ def main():
         camera = PinholeCameraCal3_S2(Pose3(np.linalg.inv(t2e)), k) 
         pts_2d = []
         pts_3d = []
-        raw_img = np.zeros((576, 1024))
+        raw_img = np.zeros((IMG_HEIGHT, IMG_WIDTH))
         for pt_3d in pts_target_3d:
             # pt_eye = Pose3(np.linalg.inv(t2e)).transform_to(pt_3d)
             pt_2d = camera.project(pt_3d)
             # pt_2d += np.random.normal([0, 0], [0.1, 0.1])
             pt_2d_int = pt_2d.astype(int)
             cv.circle(raw_img, tuple(pt_2d_int), 2, 255) 
-            if pt_2d[0] >= 0 and pt_2d[0] < 1024 and pt_2d[1] >= 0 and pt_2d[1] < 576: 
+            if pt_2d[0] >= 0 and pt_2d[0] < IMG_WIDTH and pt_2d[1] >= 0 and pt_2d[1] < IMG_HEIGHT: 
                 pts_2d.append(pt_2d)
                 pts_3d.append(pt_3d)
         if vis_target:
