@@ -3,16 +3,15 @@ import cv2 as cv
 import numpy as np
 from matplotlib import pyplot as plt
 
-from py_kinetic_backend import Pose3, Rot3, PinholeCameraCal3_S2, Cal3_S2
+from py_kinetic_backend import Pose3, Rot3, PinholeCameraCal3DS2, Cal3DS2
 
-# from randomised_traj_gen import traj_gen 
+from randomised_traj_gen import traj_gen 
+from sim import * 
 from target import CheckerBoardTarget
 from rm_factor_graph import calib_rm_factor_graph
 
 np.random.seed(5)
 vis_target = False
-IMG_WIDTH = 1920 
-IMG_HEIGHT = 1200 
 
 def draw_coordinates(T):
     fig = plt.figure()
@@ -40,26 +39,11 @@ def draw_coordinates(T):
     ax.legend()
     plt.show()
 
-def create_calib_gt():
-    # RzRyRx first rotate around z axis, then y axis, lastly x axis.
-    calib_rot_gt = Rot3.RzRyRx([-np.pi/2, 0, -np.pi/2])
-    calib_t_gt = np.array([0.15, 0, 0])
-    calib_gt = Pose3(calib_rot_gt, calib_t_gt).matrix()
-    return calib_gt
-
-def create_t2w_gt():
-    calib_rot_gt = Rot3.RzRyRx([-np.pi/2, 0, -np.pi/2])
-    calib_t_gt = np.array([1.5, 0, 0.5])
-    t2w = Pose3(calib_rot_gt, calib_t_gt).matrix()
-    return t2w 
-
-def create_intrinsic():
-    return np.array([1188, 1188, 0, IMG_WIDTH/2, IMG_HEIGHT/2])
 
 def perturb_by_gaussian(pose, noise, apply_right=True):
     # [rx, ry, rz, x, y, z]
     tf_vec_noise = np.random.normal(np.zeros(6), noise)
-    rot = Rot3.RzRyRx(tf_vec_noise[:3])
+    rot = Rot3.rzryrx(tf_vec_noise[:3])
     tf_noise = Pose3(rot, tf_vec_noise[3:]).matrix()
     if apply_right:
         return pose @ tf_noise 
@@ -78,7 +62,7 @@ def main():
     # calib is defined as eye to hand 
     calib_gt = create_calib_gt()
     t2w_gt = create_t2w_gt()
-    intrinsic = create_intrinsic()
+    intrinsic = create_intrinsic_distortion()
 
     calib_noise = np.array([0.01, 0.01, 0.01, 0.1, 0.1, 0.1])
     calib_pert = perturb_by_gaussian(calib_gt, calib_noise)
@@ -92,9 +76,9 @@ def main():
     pts_all = []
     for h2w in trajs:
         t2e = np.linalg.inv(calib_gt) @ np.linalg.inv(h2w) @ t2w_gt
-        k = Cal3_S2(intrinsic)
+        k = Cal3DS2(intrinsic)
         
-        camera = PinholeCameraCal3_S2(Pose3(np.linalg.inv(t2e)), k) 
+        camera = PinholeCameraCal3DS2(Pose3(np.linalg.inv(t2e)), k) 
         pts_2d = []
         pts_3d = []
         raw_img = np.zeros((IMG_HEIGHT, IMG_WIDTH))
@@ -115,10 +99,10 @@ def main():
             "3d": pts_3d
         })
 
-    intrinsic_pert = intrinsic + np.array([10, 20, 0, 8, 7])
-    calib_ret, t2w_ret = calib_rm_factor_graph(calib_pert, t2w_pert, intrinsic_pert, trajs, pts_all)
+    intrinsic_pert = intrinsic # + np.array([10, 20, 0, 8, 7, 0, 0, 0, 0])
+    calib_ret, t2w_ret, _, _ = calib_rm_factor_graph(calib_pert, t2w_pert, intrinsic_pert, trajs, pts_all)
     print(Pose3.logmap(Pose3(calib_gt).between(Pose3(calib_ret))))
-    print(Pose3.logmap(Pose3(calib_gt).between(Pose3(calib_pert))))
+    print(Pose3.logmap(Pose3(t2w_ret).between(Pose3(t2w_gt))))
 
 
 if __name__ == "__main__":

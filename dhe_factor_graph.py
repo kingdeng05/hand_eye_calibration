@@ -33,7 +33,7 @@ def calibrate_dhe_factor_graph(calib_gt, poses_a, poses_b):
         graph.add(dhe_factor)
 
     # Create a small perturbation
-    rot = Rot3.RzRyRx([0.01, 0.02, 0.01])
+    rot = Rot3.rzryrx([0.01, 0.02, 0.01])
     pert = Pose3(rot, np.array([0.02, 0.04, 0.03]))
 
     calib_gt_pose = Pose3(calib_gt)
@@ -45,6 +45,4 @@ def calibrate_dhe_factor_graph(calib_gt, poses_a, poses_b):
     result = optimizer.optimize()
     print("error change: {} -> {}".format(graph.error(initial), graph.error(result)))
 
-    vec_diff = Pose3.logmap(Pose3(calib_gt).between(result.atPose3(calib_key)))
-    print("rot diff: {}".format(np.rad2deg(vec_diff[:3])))
-    print("t diff: {}".format(vec_diff[3:]))
+    return result.atPose3(calib_key).matrix()

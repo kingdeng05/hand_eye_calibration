@@ -90,7 +90,7 @@ public:
 
     if (H_intrinsic) {
       if (fix_intrinsic_) {
-        *H_intrinsic = gtsam::Matrix25::Zero();
+        *H_intrinsic = gtsam::Matrix29::Zero();
       } else {
         *H_intrinsic = D_proj_intr;
       }

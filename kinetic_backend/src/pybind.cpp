@@ -20,6 +20,8 @@
 
 #include "dhe_factor.h"
 #include "rm_factor.h"
+#include "he_pose_constraint_factor.h"
+#include "general_projection_factor.h"
 
 namespace py = pybind11;
 using namespace gtsam;
@@ -61,11 +63,12 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
         .def(py::self * py::self)
         .def("matrix", &Rot3::matrix)
         .def("quaternion", static_cast<Vector (Rot3::*)() const>(&Rot3::quaternion))
-        .def_static("Random", &Rot3::Random)
-        .def_static("Rodrigues", py::overload_cast<const Vector3&>(&Rot3::Rodrigues))
-        .def_static("RzRyRx", py::overload_cast<const Vector&>(&Rot3::RzRyRx))
-        .def_static("Logmap", &Rot3::Logmap, py::arg(), py::arg()=OptionalJacobian<3, 3>())
-        .def_static("Expmap", &Rot3::Expmap, py::arg(), py::arg()=OptionalJacobian<3, 3>())
+        .def("xyz", &Rot3::xyz)
+        .def_static("random", &Rot3::Random)
+        .def_static("rodrigues", py::overload_cast<const Vector3&>(&Rot3::Rodrigues))
+        .def_static("rzryrx", py::overload_cast<const Vector&>(&Rot3::RzRyRx))
+        .def_static("logmap", &Rot3::Logmap, py::arg(), py::arg()=OptionalJacobian<3, 3>())
+        .def_static("expmap", &Rot3::Expmap, py::arg(), py::arg()=OptionalJacobian<3, 3>())
         ;
 
     // Pose3
@@ -90,11 +93,9 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
     // Values
     py::class_<Values, boost::shared_ptr<Values>>(m, "Values")
         .def(py::init<>())
-        // .def("insert", static_cast<void (gtsam::Values::*)(gtsam::Key, const gtsam::Value&)>(&gtsam::Values::insert))
         .def("insertPose3", &gtsam::Values::insert<Pose3>)
         .def("insertCal3_S2", &gtsam::Values::insert<Cal3_S2>)
         .def("insertCal3DS2", &gtsam::Values::insert<Cal3DS2>)
-        // .def("atPose3", static_cast<const Pose3& (Values::*)(Key) const>(&Values::at));
         .def("atPose3", &Values::at<Pose3>)
         .def("atCal3_S2", &Values::at<Cal3_S2>)
         .def("atCal3DS2", &Values::at<Cal3DS2>)
@@ -111,12 +112,6 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
     py::class_<LevenbergMarquardtOptimizer, boost::shared_ptr<LevenbergMarquardtOptimizer>>(m, "LevenbergMarquardtOptimizer")
         .def(py::init<const NonlinearFactorGraph&, const Values&>())
         .def("optimize", &LevenbergMarquardtOptimizer::optimize);
-
-    // PriorFactor
-    // py::class_<PriorFactor<Pose3>, boost::shared_ptr<PriorFactor<Pose3>>>(m, "PriorFactor")
-    py::class_<PriorFactor<Pose3>, boost::shared_ptr<PriorFactor<Pose3>>>(m, "PriorFactorPose3")
-        .def(py::init<>())
-        .def(py::init<Key, const Pose3&, const SharedNoiseModel&>());
 
     // noise models
     py::class_<noiseModel::Base, boost::shared_ptr<noiseModel::Base>>(m, "Base");
@@ -149,6 +144,13 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
         .def("vector", &Cal3DS2::vector)
         ;
 
+    // PriorFactor
+    py::class_<PriorFactor<Pose3>, boost::shared_ptr<PriorFactor<Pose3>>, NonlinearFactor>(m, "PriorFactorPose3")
+        .def(py::init<>())
+        .def(py::init<Key, const Pose3&, const SharedNoiseModel&>());
+    py::class_<PriorFactor<Cal3DS2>, boost::shared_ptr<PriorFactor<Cal3DS2>>, NonlinearFactor>(m, "PriorFactorCal3DS2")
+        .def(py::init<>())
+        .def(py::init<Key, const Cal3DS2&, const SharedNoiseModel&>());
 
     // Custom factors
     py::class_<DHEFactor, boost::shared_ptr<DHEFactor>, NonlinearFactor>(m, "DHEFactor")
@@ -168,6 +170,19 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
              py::arg("point_in_target"), py::arg("measurement"), py::arg("model"),
              py::arg("fix_hand2eye")=false, py::arg("fix_world2hand")=true, py::arg("fix_target2world")=false,
              py::arg("fix_intrinsic")=true)
+            ;
+
+    py::class_<HEPoseConstraintFactor, boost::shared_ptr<HEPoseConstraintFactor>, NonlinearFactor>(m, "HEPoseConstraintFactor")
+        .def(py::init<Key, Key, Key, const Pose3, const SharedNoiseModel&, bool, bool, bool>(),
+             py::arg("eye2hand"), py::arg("world2target"), py::arg("target2eye"), py::arg("measurement"), py::arg("model"),
+             py::arg("fix_eye2hand")=false, py::arg("fix_world2target")=false, py::arg("fix_target2eye")=false)
+            ;
+
+    py::class_<GeneralProjectionFactor<Cal3DS2>, boost::shared_ptr<GeneralProjectionFactor<Cal3DS2>>, NonlinearFactor>(m, "GeneralProjectionFactorCal3DS2")
+        .def(py::init<Key, Key, const Point3, const Point2, const SharedNoiseModel&, bool, bool>(),
+             py::arg("world2cam"), py::arg("intrinsic"), 
+             py::arg("point_in_target"), py::arg("measurement"), py::arg("model"),
+             py::arg("fix_world2cam")=false, py::arg("fix_intrinsic")=false)
             ;
 
 }

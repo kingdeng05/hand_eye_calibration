@@ -3,10 +3,44 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from itertools import permutations
 
-from randomised_traj_gen import traj_gen 
+# from randomised_traj_gen import traj_gen 
+from cube_gen import traj_gen 
 
 TARGET_CENTER = [3, 0, 0.8]
+
+
+def total_distance(poses):
+    distance = 0
+    for i in range(len(poses) - 1):
+        distance += np.linalg.norm(poses[i, 3:] - poses[i + 1, 3:])
+    return distance
+
+def poses_sort(poses):
+    occ_ids = set() 
+    poses_sort = []
+    done = True 
+    i = 0
+    occ_ids.add(0)
+    poses_sort.append(poses[i])
+    while done:
+        best_idx = -1
+        best_pose = None
+        largest_distance = np.inf
+        for j, pose_j in enumerate(poses):
+            if j not in occ_ids:
+                dist = np.linalg.norm(np.array(poses[i]) - np.array(pose_j))
+                if dist < largest_distance:
+                    best_pose = pose_j 
+                    largest_distance = dist 
+                    best_idx = j
+        occ_ids.add(best_idx)
+        i = best_idx 
+        poses_sort.append(best_pose)
+        if len(occ_ids) == len(poses):
+            done = False 
+    return poses_sort
 
 def quat_to_rot(qx, qy, qz, qw):
     # Convert quaternion to rotation matrix
@@ -116,6 +150,7 @@ def main():
     # generate trajectories
     # poses = generate_traj()       
     poses = traj_gen()
+    poses = poses_sort(poses)
 
     # visualize the traj
     vis_traj(poses)
