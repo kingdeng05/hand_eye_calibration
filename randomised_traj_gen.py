@@ -6,7 +6,7 @@ from py_kinetic_backend import Pose3, Rot3, Cal3DS2, PinholeCameraCal3DS2
 
 from sim import * 
 from target import CheckerBoardTarget, ArucoCubeTarget
-from robot_pose_validitor import MoveGroup
+from robot_pose_validator import MoveGroup
 
 VIS = True 
 np.random.seed(5)
