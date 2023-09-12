@@ -91,33 +91,6 @@ def traj_gen():
                 # cv.imshow("target_projection", raw_img)
                 # cv.waitKey(0)
 
-            # fig = plt.figure()
-            # ax = fig.add_subplot(111, projection='3d')
-
-            # # Identity matrix for the base frame (fixed at origin)
-            # base_frame = np.identity(4)
-            # plot_frame(ax, base_frame, "Base")
-
-            # # Example 4x4 matrices for other frames relative to the base
-            # camera_frame = base_tf_target @ target_tf_camera 
-            # hand_frame = base_tf_hand 
-            # target_frame = base_tf_target 
-
-            # # Plot frames
-            # plot_frame(ax, camera_frame, "Camera")
-            # plot_frame(ax, hand_frame, "Hand")
-            # plot_frame(ax, target_frame, "Target")
-
-            # # Set plot limits and labels
-            # ax.set_xlim([-2, 2])
-            # ax.set_ylim([-2, 2])
-            # ax.set_zlim([-2, 2])
-            # ax.set_xlabel("X")
-            # ax.set_ylabel("Y")
-            # ax.set_zlabel("Z")
-
-            # plt.show()
-
     return hand_poses
 
 if __name__ == "__main__":
