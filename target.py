@@ -79,13 +79,13 @@ class ArucoCubeTarget(CalibTarget3D):
     def __init__(self, size):
         self.targets = { 
             # 0: ArucoBoardTarget(5, 5, 0.166, 0.033, 0),
-            # 50: ArucoBoardTarget(5, 5, 0.166, 0.033, 50),
+            50: ArucoBoardTarget(5, 5, 0.166, 0.033, 50),
             100: ArucoBoardTarget(5, 5, 0.166, 0.033, 100),
         } 
         # rx, ry, rz, x, y, z (in euler angles), from base to side of target
         self.frames = {
             # 0: np.array([np.pi/2, 0, -np.pi*3/4, 0, 0, size/2]), # up
-            # 50: np.array([0, -np.pi/4, 0, 0, 0, size/2]), # left
+            50: np.array([0, -np.pi/4, 0, 0, 0, size/2]), # left
             100: np.array([0, np.pi/4, 0, 0, 0, size/2]) # right
         } 
         super().__init__()

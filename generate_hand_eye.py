@@ -5,8 +5,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from itertools import permutations
 
-# from randomised_traj_gen import traj_gen 
-from cube_gen import traj_gen 
+from randomised_traj_gen import traj_gen 
 
 TARGET_CENTER = [3, 0, 0.8]
 
