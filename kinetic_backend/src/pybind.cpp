@@ -25,6 +25,7 @@
 #include "hand_eye_factors/he_pose_constraint_factor.h"
 #include "base_tt_factors/track_pose_factor.h"
 #include "base_tt_factors/hand_pose_factor.h"
+#include "base_tt_factors/tt_pose_factor.h"
 
 namespace py = pybind11;
 using namespace gtsam;
@@ -203,6 +204,12 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
         .def(py::init<Key, Key, Key, const Pose3, const SharedNoiseModel&, bool, bool, bool>(),
              py::arg("cam2ee"), py::arg("target2base"), py::arg("target2cam"), py::arg("ee2base_meas"), py::arg("model"),
              py::arg("fix_cam2ee")=true, py::arg("fix_target2base")=false, py::arg("fix_target2cam")=false)
+            ;
+
+    py::class_<TtPoseFactor, boost::shared_ptr<TtPoseFactor>, NonlinearFactor>(m, "TtPoseFactor")
+        .def(py::init<Key, Key, const Pose3, const SharedNoiseModel&, bool, bool>(),
+             py::arg("target2tt_i"), py::arg("target2tt_0"), py::arg("tti2tt0_meas"), py::arg("model"),
+             py::arg("fix_target2tt_i")=true, py::arg("fix_target2tt_0")=false)
             ;
 
 }

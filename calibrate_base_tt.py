@@ -2,7 +2,7 @@ import numpy as np
 import cv2 as cv
 from collections import defaultdict
 
-from py_kinetic_backend import HandPoseFactor, GeneralProjectionFactor, TrackPoseFactor, BetweenFactorPose3 
+from py_kinetic_backend import HandPoseFactor, GeneralProjectionFactor, TrackPoseFactor, TtPoseFactor 
 from py_kinetic_backend import Diagonal, NonlinearFactorGraph, symbol, Cal3DS2
 from py_kinetic_backend import Pose3, Rot3, Values, LevenbergMarquardtOptimizer
 from py_kinetic_backend import RMFactorCal3DS2, PriorFactorPose3, PriorFactorCal3DS2
@@ -25,7 +25,7 @@ def solve_base_to_tt_graph(pts_all, hand_poses, track_tfs, tt_tfs, initials):
     proj_noise = Diagonal.sigmas([2, 2]) 
     hand_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]) # from robot manual 
     track_noise = Diagonal.sigmas([1e-5, 1e-5, 1e-5, 1e-2, 1e-4, 1e-4]) # large noise in x 
-    tt_between_noise = Diagonal.sigmas([1e-5, 1e-5, 1e-2, 1e-4, 1e-4, 1e-4]) # should only have yaw
+    tt_noise = Diagonal.sigmas([1e-5, 1e-5, 1e-2, 1e-4, 1e-4, 1e-4]) # should only have yaw
     tr2tt_prior_noise = Diagonal.sigmas([1e-5, 1e-3, 1e-3, 0.1, 0.1, 0.1]) # x should be parallel
 
     # set up initial values for time-invariant variables
@@ -65,9 +65,9 @@ def solve_base_to_tt_graph(pts_all, hand_poses, track_tfs, tt_tfs, initials):
                                        False, False, False, False) 
         graph.add(track_factor)
 
-        # add tt between factor
-        tt_between_factor = BetweenFactorPose3(target2tt_keys[-1], target2tt_keys[0], Pose3(tt_tf), tt_between_noise)
-        graph.add(tt_between_factor)
+        # add tt pose factor
+        tt_factor = TtPoseFactor(target2tt_keys[-1], target2tt_keys[0], Pose3(tt_tf), tt_noise)
+        graph.add(tt_factor)
 
         # add tr2tt prior factor
         tr2tt_prior_factor = PriorFactorPose3(track2tt_key, Pose3(initials["track2tt"]), tr2tt_prior_noise)
