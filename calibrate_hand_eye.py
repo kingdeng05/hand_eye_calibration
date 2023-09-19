@@ -10,12 +10,14 @@ from matplotlib import pyplot as plt
 from read_rosbag import read_handeye_bag
 from rm_factor_graph import calib_rm_factor_graph, calib_rm2_factor_graph
 from dhe_factor_graph import calibrate_dhe_factor_graph 
-from reproj_sim import create_calib_gt, create_cube_t2w_gt, create_intrinsic_distortion
+from reproj_sim import create_calib_gt, create_cube_t2w_gt
 from target import ArucoCubeTarget, ArucoBoardTarget
 from aruco_detector import ArucoDetector
+from calibrate_intrinsic import calibrate_intrinsic, calculate_reproj_error, reprojection_plot
 
-# random.seed(5)
+random.seed(5)
 np.set_printoptions(precision=3, suppress=True)
+
 
 def pose_msg_to_tf(pose_msg):
     rot = Rot3(pose_msg.orientation.w, pose_msg.orientation.x, pose_msg.orientation.y, pose_msg.orientation.z)
@@ -32,83 +34,6 @@ def tf_to_vec(tf, use_degree=True):
     rot_vec = rot_vec.tolist()
     trans_vec = pose.translation().tolist()
     return np.array(rot_vec + trans_vec) 
-
-def calculate_reproj_error(pts_2d, pts_proj):
-    return np.linalg.norm(pts_2d - pts_proj, axis=1).mean()
-
-def reprojection_plot(pts_2d, pts_proj):
-    diff = pts_proj - pts_2d
-    _, axes = plt.subplots(1, 1, squeeze=True)
-    axes.scatter(diff[:, 0], diff[:, 1])
-    axes.set_xlim([-20, 20])
-    axes.set_ylim([-20, 20])
-    axes.set_xlabel("x")
-    axes.set_ylabel("y")
-    error = calculate_reproj_error(pts_2d, pts_proj)
-    std = np.linalg.norm(pts_2d - pts_proj, axis=1).std()
-    axes.set_title(f"error: {error}, std: {std}")
-    plt.show()
-
-def calibrate_intrinsic(bag_path, saved_path=".calibration.yaml"):
-    # load from saved path
-    if os.path.exists(saved_path):
-        print(f"loading intrinsic from previous result at {saved_path}")
-        return np.array(yaml.safe_load(open(saved_path))["intrinsic_vec"])
-
-    targets = {
-        50: ArucoBoardTarget(5, 5, 0.166, 0.033, 50),
-        100: ArucoBoardTarget(5, 5, 0.166, 0.033, 100)
-    }
-    detector = ArucoDetector(vis=False)
-    pts_3d_all, pts_2d_all = [], []
-    for img, _, _, _, _ in read_handeye_bag(bag_path):
-        # 3d pts (n, 3), 2d pts (n, 1, 2)
-        corners, ids = detector.detect(img)
-        pts_3d = defaultdict(list) 
-        pts_2d = defaultdict(list) 
-        for target_id, target in targets.items():
-            for corner, id in zip(corners, ids):
-                try:
-                    pts_3d[target_id].append(target.find_3d_pts_by_id(id)[0]) 
-                    pts_2d[target_id].append(corner[0])
-                except:
-                    continue
-        for key, pts_3d_target in pts_3d.items():
-            if len(pts_3d_target) >= 3:
-                pts_3d_target = np.vstack(pts_3d_target, dtype=np.float32)
-                pts_2d_target = np.vstack(pts_2d[key], dtype=np.float32)
-                pts_2d_target = pts_2d_target.reshape(len(pts_2d_target), 1, 2)
-                pts_3d_all.append(pts_3d_target)
-                pts_2d_all.append(pts_2d_target)
-
-    print(f"Using {len(pts_3d_all)} for intrinsic calibration")
-
-    flags = cv.CALIB_FIX_K3
-    ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(pts_3d_all, pts_2d_all, img.shape[:2][::-1], None, None, flags=flags)
-
-    # Compute reprojection error
-    mean_error = 0
-    pts_2d_proj = []
-    for i in range(len(pts_3d_all)):
-        imgpoints2, _ = cv.projectPoints(pts_3d_all[i], rvecs[i], tvecs[i], mtx, dist)
-        pts_2d_proj.append(imgpoints2.reshape(-1, 2))
-        error = cv.norm(pts_2d_all[i], imgpoints2.reshape(-1, 1, 2), cv.NORM_L2) / len(imgpoints2)
-        mean_error += error
-    pts_2d_proj = np.vstack(pts_2d_proj)
-    pts_2d_all = np.vstack(pts_2d_all)
-    pts_2d_all = pts_2d_all.reshape(-1, 2) 
-    # reprojection_plot(pts_2d_all, pts_2d_proj)
-    print(f"Total error: {mean_error / len(pts_3d_all)}")
-
-    dist = dist.flatten().tolist()
-    intrinsic_vec = np.array([mtx[0, 0], mtx[1, 1], mtx[0, 1], mtx[0, 2], mtx[1, 2]] + dist[:4])
-    
-    with open(saved_path, "w+") as f:
-        print(f"first time performing calibration, result saved to: {saved_path}")
-        yaml.safe_dump({
-            "intrinsic_vec": intrinsic_vec.tolist()
-        }, f, default_flow_style=False)
-    return intrinsic_vec 
 
 def calibrate_hand_eye_rm(bag_path):
     calib_init = create_calib_gt()
@@ -245,8 +170,6 @@ def calibrate_hand_eye_dhe(bag_path):
         eye_poses.append(eye_pose)
         hand_poses.append(pose_msg_to_tf(pose_msg))
 
-    calib_rm, hand_poses = calibrate_hand_eye_rm(bag_path)
-
     zipped = list(zip(hand_poses, eye_poses))
     random.shuffle(zipped)
     hand_poses, eye_poses = zip(*zipped)
@@ -257,9 +180,11 @@ def calibrate_hand_eye_dhe(bag_path):
     t_target2cam = [eye_pose[:3, 3] for eye_pose in eye_poses]
     R_eye2hand, t_eye2hand = cv.calibrateHandEye(R_hand2base, t_hand2base, R_target2cam, t_target2cam, cv.CALIB_HAND_EYE_PARK)
     calib_park = Pose3(Rot3(R_eye2hand), t_eye2hand)
+    print("closed form solution: ", tf_to_vec(calib_park.matrix()))
     print("calib diff with closed form: ", tf_to_vec(Pose3(calib_init).between(calib_park).matrix()))
 
-    calib_opt = calibrate_dhe_factor_graph(calib_rm, hand_poses, eye_poses)
+    calib_opt = calibrate_dhe_factor_graph(calib_init, hand_poses, eye_poses)
+    print("least squares solution: ", tf_to_vec(calib_opt))
     print("calib diff: ", tf_to_vec(Pose3(calib_init).between(Pose3(calib_opt)).matrix()))
 
 def calibrate_hand_eye_rm2(bag_path):
@@ -267,7 +192,7 @@ def calibrate_hand_eye_rm2(bag_path):
     t2w_init = create_cube_t2w_gt()
     intrinsic = calibrate_intrinsic(bag_path)
 
-    target = ArucoCubeTarget(1.035)
+    target = ArucoCubeTarget(1.035, use_ids=(50,))
     detector = ArucoDetector(vis=False)
     pts_all = []
     hand_poses = []
@@ -347,20 +272,20 @@ def calibrate_hand_eye_rm2(bag_path):
             pts_all_2d.append(pt_2d)
             pts_all_proj.append(pt_proj)
         # visualization
-        pts_proj = np.array(pts_proj)
-        if len(pts_proj):
-            error_cur = calculate_reproj_error(pts_proj, pts["2d"])
-            cv.putText(
-                img_copy, 
-                f"reproj_error: {error_cur}",
-                (200, 200),
-                cv.FONT_HERSHEY_SIMPLEX,
-                1,
-                (0, 255, 0)
-            )
-        img_copy = cv.resize(img_copy, (int(img_copy.shape[1]/2), int(img_copy.shape[0]/2)))
-        cv.imshow("proj", img_copy)
-        cv.waitKey(0)
+        # pts_proj = np.array(pts_proj)
+        # if len(pts_proj):
+        #     error_cur = calculate_reproj_error(pts_proj, pts["2d"])
+        #     cv.putText(
+        #         img_copy, 
+        #         f"reproj_error: {error_cur}",
+        #         (200, 200),
+        #         cv.FONT_HERSHEY_SIMPLEX,
+        #         1,
+        #         (0, 255, 0)
+        #     )
+        # img_copy = cv.resize(img_copy, (int(img_copy.shape[1]/2), int(img_copy.shape[0]/2)))
+        # cv.imshow("proj", img_copy)
+        # cv.waitKey(0)
 
     # calculate overall reprojection error
     pts_all_2d = np.array(pts_all_2d)
@@ -370,8 +295,8 @@ def calibrate_hand_eye_rm2(bag_path):
 
 
 if __name__ == "__main__":
-    bag_name = "/home/fuhengdeng/hand_eye.bag"
-    # calibrate_intrinsic(bag_name)
-    # calibrate_hand_eye_rm(bag_name)
+    # bag_name = "/home/fuhengdeng/hand_eye.bag"
+    bag_name = "/home/fuhengdeng/fuheng.bag"
     # calibrate_hand_eye_dhe(bag_name)
+    # calibrate_hand_eye_rm(bag_name)
     calibrate_hand_eye_rm2(bag_name)

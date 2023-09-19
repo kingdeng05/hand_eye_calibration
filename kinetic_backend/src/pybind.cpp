@@ -14,14 +14,17 @@
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 #include <gtsam/slam/PriorFactor.h>
+#include <gtsam/slam/BetweenFactor.h>
 #include <gtsam/geometry/Cal3_S2.h>
 #include <gtsam/geometry/Cal3DS2.h>
 #include <gtsam/geometry/PinholeCamera.h>
 
-#include "dhe_factor.h"
-#include "rm_factor.h"
-#include "he_pose_constraint_factor.h"
 #include "general_projection_factor.h"
+#include "hand_eye_factors/dhe_factor.h"
+#include "hand_eye_factors/rm_factor.h"
+#include "hand_eye_factors/he_pose_constraint_factor.h"
+#include "base_tt_factors/track_pose_factor.h"
+#include "base_tt_factors/hand_pose_factor.h"
 
 namespace py = pybind11;
 using namespace gtsam;
@@ -152,6 +155,11 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
         .def(py::init<>())
         .def(py::init<Key, const Cal3DS2&, const SharedNoiseModel&>());
 
+    // Between factor
+    py::class_<BetweenFactor<Pose3>, boost::shared_ptr<BetweenFactor<Pose3>>, NonlinearFactor>(m, "BetweenFactorPose3")
+        .def(py::init<>())
+        .def(py::init<Key, Key, const Pose3&, const SharedNoiseModel&>());
+
     // Custom factors
     py::class_<DHEFactor, boost::shared_ptr<DHEFactor>, NonlinearFactor>(m, "DHEFactor")
         .def(py::init<Key, Key, Key, Key, Key, const SharedNoiseModel&>(),
@@ -183,6 +191,18 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
              py::arg("world2cam"), py::arg("intrinsic"), 
              py::arg("point_in_target"), py::arg("measurement"), py::arg("model"),
              py::arg("fix_world2cam")=false, py::arg("fix_intrinsic")=false)
+            ;
+
+    py::class_<TrackPoseFactor, boost::shared_ptr<TrackPoseFactor>, NonlinearFactor>(m, "TrackPoseFactor")
+        .def(py::init<Key, Key, Key, Key, const Pose3, const SharedNoiseModel&, bool, bool, bool, bool>(),
+             py::arg("base2track"), py::arg("target2base"), py::arg("target2tt"), py::arg("track2tt"), py::arg("measurement"), py::arg("model"),
+             py::arg("fix_base2track")=false, py::arg("fix_target2base")=false, py::arg("fix_target2tt")=false, py::arg("fix_track2tt")=false)
+            ;
+
+    py::class_<HandPoseFactor, boost::shared_ptr<HandPoseFactor>, NonlinearFactor>(m, "HandPoseFactor")
+        .def(py::init<Key, Key, Key, const Pose3, const SharedNoiseModel&, bool, bool, bool>(),
+             py::arg("cam2ee"), py::arg("target2base"), py::arg("target2cam"), py::arg("ee2base_meas"), py::arg("model"),
+             py::arg("fix_cam2ee")=true, py::arg("fix_target2base")=false, py::arg("fix_target2cam")=false)
             ;
 
 }

@@ -10,8 +10,8 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Add your source files here
-set(SOURCE_FILES src/dhe_factor_graph.cpp)
+# # Add your source files here
+# set(SOURCE_FILES src/dhe_factor_graph.cpp)
 
 # Interface library for header-only
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)  # And this line
@@ -19,14 +19,14 @@ include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${GTSAM_INCLUDE_DIR})
 include_directories(${EIGEN3_INCLUDE_DIR})
 
-add_library(${CMAKE_PROJECT_NAME} SHARED ${SOURCE_FILES})
-target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-add_executable(${CMAKE_PROJECT_NAME}_exe src/main.cpp)
-target_link_libraries(${CMAKE_PROJECT_NAME}_exe PUBLIC ${CMAKE_PROJECT_NAME}) 
+add_library(${CMAKE_PROJECT_NAME} INTERFACE)
+target_include_directories(kinetic_backend INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>  # <prefix>/include
+)
 
 # Linking libraries
-target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC gtsam ${Boost_LIBRARIES})  
+target_link_libraries(${CMAKE_PROJECT_NAME} INTERFACE gtsam ${Boost_LIBRARIES})  
 
 # To install the header files
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION include
@@ -34,7 +34,15 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION include
 
 # To install kinetic_factors shared library into system lib directory
 install(TARGETS ${CMAKE_PROJECT_NAME}
-        LIBRARY DESTINATION lib)
+        EXPORT ${CMAKE_PROJECT_NAME}Targets
+        ARCHIVE DESTINATION lib 
+        LIBRARY DESTINATION lib 
+        RUNTIME DESTINATION lib
+        INCLUDES DESTINATION include)
+install(EXPORT ${CMAKE_PROJECT_NAME}Targets
+        FILE ${CMAKE_PROJECT_NAME}Targets.cmake
+        NAMESPACE kinetic_backend::
+        DESTINATION lib/cmake/kinetic_backend)
 
 # Pybind11 (if needed)
 find_package(pybind11 REQUIRED)

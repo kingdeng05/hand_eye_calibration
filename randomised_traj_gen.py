@@ -52,7 +52,8 @@ def traj_gen():
     intrinsic = create_intrinsic_distortion(focal_length="4mm")
     hand_tf_camera = create_calib_gt()
     base_tf_target = create_cube_t2w_gt()
-    pts_target_3d = ArucoCubeTarget(1.035).get_pts_3d()
+    pts_target_3d = ArucoCubeTarget(1.035, use_ids=(50, 100)).get_pts_3d()
+    visible_cam = VisibleCamera(intrinsic)
     mg = MoveGroup()
 
     # start generating
@@ -83,13 +84,15 @@ def traj_gen():
             # vis
             if VIS:
                 raw_img = np.zeros((IMG_HEIGHT, IMG_WIDTH))
-                pts_2d = np.array(pts_2d).astype(int)
+                pts_2d = visible_cam.project(target_tf_camera, ArucoCubeTarget(1.035, use_ids=(0, 25, 50, 75, 100)), raw_img.shape[::-1]).astype(int)
+                print(len(pts_2d))
+                # pts_2d = np.array(pts_2d).astype(int)
                 for pt_2d in pts_2d:
                     cv.circle(raw_img, tuple(pt_2d), 2, 255) 
                 raw_img = cv.resize(raw_img, (int(IMG_WIDTH/2), int(IMG_HEIGHT/2)))
-                cv.imwrite(f"simulated-img{valid_cnt}.png", raw_img)
-                # cv.imshow("target_projection", raw_img)
-                # cv.waitKey(0)
+                # cv.imwrite(f"simulated-img{valid_cnt}.png", raw_img)
+                cv.imshow("target_projection", raw_img)
+                cv.waitKey(0)
 
     return hand_poses
 

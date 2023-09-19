@@ -70,7 +70,7 @@ def plot_changes(bag_file_path):
     pose_diff = []
     for topic, msg, _ in bag.read_messages():
         t = convert_to_unix_ns(msg.header.stamp)
-        if topic == "/camera/image_color":
+        if topic == "/camera/image_color/compressed":
             corners, ids = detector.detect(msg_to_img(msg)) 
             if corners_prev is not None:
                 diff = calc_camera_diff(corners, ids, corners_prev, ids_prev)
@@ -119,8 +119,14 @@ def convert_to_unix_ns(stamp):
 def convert_to_unix_ms(stamp):
     return convert_to_unix_ns(stamp) / 1e6 
 
-def msg_to_img(img_msg):
-    return np.array(bridge.imgmsg_to_cv2(img_msg, "bgr8"))
+def msg_to_img(img_msg, compressed=True):
+    if compressed:
+        # compressed image parsing
+        img = cv.imdecode(np.frombuffer(img_msg.data, np.uint8), cv.IMREAD_COLOR)
+    else:
+        # raw msg parsing
+        img = np.array(bridge.imgmsg_to_cv2(img_msg, "bgr8"))
+    return  img
 
 def check_camera_msg(corners_1, ids_1, corners_2, ids_2, pixel_tol=2):
     for id_1 in ids_1:
@@ -237,7 +243,7 @@ def read_handeye_bag(bag_file_path):
             end_effector_stop_time = convert_to_unix_ns(msg.header.stamp) 
 
         if end_effector_stop_time is not None: 
-            if topic == '/camera/image_color' and convert_to_unix_ns(msg.header.stamp) > end_effector_stop_time:
+            if topic == '/camera/image_color/compressed' and convert_to_unix_ns(msg.header.stamp) > end_effector_stop_time:
                 corners, ids = detector.detect(msg_to_img(msg))
                 if corners_prev is not None:
                     diff = calc_camera_diff(corners, ids, corners_prev, ids_prev)
@@ -253,7 +259,7 @@ def read_handeye_bag(bag_file_path):
                     next_pose_after_stop = msg
 
             if next_image_after_stop is not None and next_pose_after_stop is not None:
-                image = msg_to_img(next_image_after_stop) 
+                image = msg_to_img(next_image_after_stop, compressed=True) 
                 pose = next_pose_after_stop.pose  
                 cam_ts = convert_to_unix_ns(next_image_after_stop.header.stamp)
                 pose_ts = convert_to_unix_ns(next_pose_after_stop.header.stamp)
@@ -275,7 +281,7 @@ def read_handeye_bag(bag_file_path):
     bag.close()
 
 if __name__ == "__main__":
-    bag_file_path = '/home/fuhengdeng/hand_eye.bag'
+    bag_file_path = '/home/fuhengdeng/fuheng.bag'
 
     # it = read_handeye_bag(bag_file_path)
 

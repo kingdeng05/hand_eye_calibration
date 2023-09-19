@@ -28,10 +28,46 @@ def create_cube_t2w_gt():
     t2w = Pose3(calib_rot_gt, calib_t_gt).matrix()
     return t2w 
 
-def create_intrinsic():
-    return np.array([FOCAL_LENGTH, FOCAL_LENGTH, 0, IMG_WIDTH/2, IMG_HEIGHT/2])
-
 def create_intrinsic_distortion(focal_length="6mm"):
     focal_length_xy = FOCAL_LENGTH[focal_length]
     return np.array([focal_length_xy, focal_length_xy, 0, IMG_WIDTH/2, IMG_HEIGHT/2, 0, 0, 0, 0])
+
+class VisibleCamera(object):
+    def __init__(self, intrinsic):
+        self.intrinsic = intrinsic
+         
+    def project(self, cam_pose, target, img_size):
+        camera = PinholeCameraCal3DS2(Pose3(cam_pose), Cal3DS2(self.intrinsic)) 
+        pts_2d = []
+        for id in target.use_ids:
+            pts_target = target.get_pts_3d_by_id(id)
+            view_dir = Pose3(cam_pose).transform_to(pts_target.mean(axis=0))
+            # calculate the z axis of the face
+            pose_vec = target.frames[id] # remember this is from target base to target face
+            tf_base2face = Pose3(Rot3.rzryrx(pose_vec[:3]), pose_vec[3:]).matrix()
+            face_vec_cam = (np.linalg.inv(tf_base2face @ cam_pose)[:3, :3].dot(np.array([0, 0, 1]).reshape(-1, 1))).flatten()
+            if self.is_face_visible(face_vec_cam, view_dir):
+                for pt_target in pts_target:
+                    pt_proj = camera.project(pt_target)
+                    if pt_proj[0] >= 0 and pt_proj[0] < img_size[0] and \
+                       pt_proj[1] >= 0 and pt_proj[1] < img_size[1]:
+                        pts_2d.append(pt_proj) 
+        return np.array(pts_2d).reshape(-1, 2)
+    
+    @staticmethod
+    def transform_pts(tf, pts):
+        pts_tf = []
+        for pt in pts:
+            pts_tf.append(Pose3(tf).transform_from(pt))
+        return np.array(pts_tf)
+            
+    @staticmethod
+    def is_face_visible(normal, view_direction):
+        # Normalize the normal and the view direction
+        normal = normal / np.linalg.norm(normal)
+        view_direction = view_direction / np.linalg.norm(view_direction)
+        # Note: normal is actually pointing inward 
+        # If the dot product is positive, the face is facing towards from the camera
+        return np.dot(normal, view_direction) > 0
+
 
