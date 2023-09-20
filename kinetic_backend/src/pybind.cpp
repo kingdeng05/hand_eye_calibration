@@ -110,6 +110,13 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
         .def(py::init<>())
         .def("add", static_cast<void (NonlinearFactorGraph::*)(const boost::shared_ptr<NonlinearFactor>&)>(&NonlinearFactorGraph::add))
         .def("error", &NonlinearFactorGraph::error)
+        .def("__len__", [](const NonlinearFactorGraph &graph) {
+            return graph.size();
+        })
+        .def("__getitem__", [](const NonlinearFactorGraph &graph, size_t i) {
+            if (i >= graph.size()) throw py::index_error();
+            return graph[i];
+        })
         ;
 
     // LevenbergMarquardtOptimizer
@@ -124,7 +131,9 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
         ;
 
     // non linear factor
-    py::class_<NonlinearFactor, boost::shared_ptr<NonlinearFactor>>(m, "NonlinearFactor");
+    py::class_<NonlinearFactor, boost::shared_ptr<NonlinearFactor>>(m, "NonlinearFactor")
+        .def("error", &NonlinearFactor::error)
+        ;
 
     // camera calibration
     py::class_<PinholeCamera<Cal3_S2>, boost::shared_ptr<PinholeCamera<Cal3_S2>>>(m, "PinholeCameraCal3_S2")

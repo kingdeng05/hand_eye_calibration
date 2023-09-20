@@ -39,6 +39,7 @@ class VisibleCamera(object):
     def project(self, cam_pose, target, img_size):
         camera = PinholeCameraCal3DS2(Pose3(cam_pose), Cal3DS2(self.intrinsic)) 
         pts_2d = []
+        pts_3d = []
         for id in target.use_ids:
             pts_target = target.get_pts_3d_by_id(id)
             view_dir = Pose3(cam_pose).transform_to(pts_target.mean(axis=0))
@@ -52,7 +53,8 @@ class VisibleCamera(object):
                     if pt_proj[0] >= 0 and pt_proj[0] < img_size[0] and \
                        pt_proj[1] >= 0 and pt_proj[1] < img_size[1]:
                         pts_2d.append(pt_proj) 
-        return np.array(pts_2d).reshape(-1, 2)
+                        pts_3d.append(pt_target)
+        return np.array(pts_2d).reshape(-1, 2), np.array(pts_3d).reshape(-1, 3)
     
     @staticmethod
     def transform_pts(tf, pts):

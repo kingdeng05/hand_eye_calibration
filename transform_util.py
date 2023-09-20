@@ -2,7 +2,9 @@ import numpy as np
 
 from py_kinetic_backend import Pose3, Rot3
 
-def euler_vec_to_mat(vec):
+def euler_vec_to_mat(vec, use_deg=False):
+    if use_deg:
+        vec[:3] = np.deg2rad(vec[:3])
     return Pose3(Rot3.rzryrx(vec[:3]), vec[3:]).matrix()
 
 def mat_to_euler_vec(mat, use_deg=True):
