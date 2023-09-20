@@ -35,7 +35,7 @@ def solve_base_to_tt_graph(pts_all, hand_poses, track_tfs, tt_tfs, initials):
     hand_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]) # from robot manual 
     track_noise = Diagonal.sigmas([1e-5, 1e-5, 1e-5, 1e-2, 1e-4, 1e-4]) # large noise in x 
     tt_noise = Diagonal.sigmas([1e-5, 1e-5, 1e-2, 1e-4, 1e-4, 1e-4]) # should only have yaw
-    tr2tt_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-6, 1e-3, 0.1, 0.1]) # x should be parallel
+    tr2tt_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-6, 0.1, 0.1, 0.1]) # x should be parallel
     base2tr_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 0.1, 1e-4, 1e-4, 1e-4]) # x should be parallel
 
     # set up initial values for time-invariant variables
@@ -173,10 +173,10 @@ def perturb_pose3(pose_mat, var, current=True):
     else:
         return pert_mat @ pose_mat
 
-# def perturb_initialsi(initials):
-#     pert = deepcopy(initials)
-#     # perturb with white noises
-#     pert["track2tt"] = perturb_pose3(pert["track2tt"], 0.1 * np.ones(6), 0.1) 
+def perturb_initials(initials):
+    pert = deepcopy(initials)
+    # perturb with white noises
+    pert["track2tt"] = perturb_pose3(pert["track2tt"], 0.1 * np.ones(6), 0.1) 
 
 def track_reading_to_transform(track_reading):
     # track moves in x direction, 0 is at the very begining
