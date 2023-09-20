@@ -1,6 +1,6 @@
 import numpy as np
 import cv2 as cv
-from collections import defaultdict
+from copy import deepcopy 
 
 from py_kinetic_backend import HandPoseFactor, GeneralProjectionFactorCal3DS2, TrackPoseFactor, TtPoseFactor 
 from py_kinetic_backend import Diagonal, NonlinearFactorGraph, symbol, Cal3DS2
@@ -12,6 +12,9 @@ from target import ArucoCubeTarget
 from aruco_detector import ArucoDetector
 from transform_util import euler_vec_to_mat, mat_to_euler_vec
 
+VIS = True
+
+np.random.seed(5)
 np.set_printoptions(precision=3, suppress=True)
 
 def solve_base_to_tt_graph(pts_all, hand_poses, track_tfs, tt_tfs, initials):
@@ -96,8 +99,6 @@ def solve_base_to_tt_graph(pts_all, hand_poses, track_tfs, tt_tfs, initials):
 
     # analysis
     # for idx, factor in enumerate(graph):
-    #     if "proj" in names[idx]:
-    #         continue 
     #     print(f"{names[idx]} factor error: {factor.error(values)}")
 
     return result.atPose3(track2tt_key).matrix(), \
@@ -118,9 +119,9 @@ def sim_bag_read(gt):
     target = ArucoCubeTarget(1.035)
     
     # simulate the movement of different components
-    tt_meas_cnt = 9
+    tt_meas_cnt = 100 
     track_meas_cnt = 10 
-    tt_readings = np.linspace(0, np.pi, tt_meas_cnt)
+    tt_readings = np.linspace(0, 2 * np.pi, tt_meas_cnt)
     track_readings = np.random.uniform(0, 1.5, track_meas_cnt)
 
     # fix ee to base for now
@@ -134,16 +135,48 @@ def sim_bag_read(gt):
             target2cam = np.linalg.inv(cam2tt) @ target2tt_i 
             cam = VisibleCamera(intrinsic) 
             pts_2d, pts_3d = cam.project(np.linalg.inv(target2cam), target, (IMG_WIDTH, IMG_HEIGHT))
+            if VIS:
+                img = np.zeros((IMG_HEIGHT, IMG_WIDTH, 3))
+                for pt in pts_2d.astype(int):
+                    cv.circle(img, tuple(pt), 2, (0, 255, 0))
+                cv.putText(
+                    img, 
+                    f"track meas: {tr}m, tt angle: {np.rad2deg(tt)}deg",
+                    (100, 100),
+                    cv.FONT_HERSHEY_SIMPLEX,
+                    1,
+                    (0, 255, 0)
+                )
+                img = cv.resize(img, (int(IMG_WIDTH/2), int(IMG_HEIGHT/2)))
+                cv.imshow("view", img) 
+                cv.waitKey(0)
             yield pts_3d, pts_2d, ee2base, track_tf, tt_tf
+
+def read_bag():
+    pass
 
 def sim_ground_truth():
     gt = dict()
-    gt["track2tt"] = euler_vec_to_mat([0, 0, -180, 3.71, -0.1, 0.38], use_deg=True)
-    gt["base2track"] = euler_vec_to_mat([0, 0, 1, 0, 0, 0], use_deg=True)
+    gt["track2tt"] = euler_vec_to_mat([0, 0, -180, 3.71, 0, 0.38], use_deg=True)
+    gt["base2track"] = euler_vec_to_mat([0, 0, 0, 0, 0, 0], use_deg=True)
     gt["cam2ee"] = euler_vec_to_mat([-90.456, -0.105, -89.559, 0.131, 0.002, 0], use_deg=True)
     gt["intrinsic"] = [1180.976, 1178.135, 0., 1033.019, 796.483, -0.211, 0.056, -0.001, -0.001]
-    gt["target2tt_0"] = euler_vec_to_mat([-90, 0, 90, 1, 0.1, 0.525], use_deg=True)
+    gt["target2tt_0"] = euler_vec_to_mat([-90, 0, 90, 1.8, 0, 0.525], use_deg=True)
     return gt 
+
+def perturb_pose3(pose_mat, var, current=True):
+    assert(len(var) == 6)
+    pert_vec = [np.random.normal(v) for v in var]
+    pert_mat = euler_vec_to_mat(pert_vec)
+    if current:
+        return pose_mat @ pert_mat  
+    else:
+        return pert_mat @ pose_mat
+
+# def perturb_initialsi(initials):
+#     pert = deepcopy(initials)
+#     # perturb with white noises
+#     pert["track2tt"] = perturb_pose3(pert["track2tt"], 0.1 * np.ones(6), 0.1) 
 
 def track_reading_to_transform(track_reading):
     # track moves in x direction, 0 is at the very begining
@@ -168,23 +201,25 @@ def append_dict_list(d, key, val):
         d[key] = [] 
     d[key].append(val)
 
-def calibrate_base_to_tt():
+def calibrate_base_to_tt(sim=True, calib_bag_path=''):
     hand_poses = []
     track_tfs = []
     tt_tfs = []
     pts_all = []
     initials = sim_ground_truth() 
-    for idx, (pts_3d, pts_2d, hand_pose, track_tf, tt_tf) in enumerate(sim_bag_read(initials)):
+
+    # read data in either sim mode or actual bag
+    if sim:
+        it = sim_bag_read(initials)
+    else:
+        it = read_bag(initials)
+
+    for _, (pts_3d, pts_2d, hand_pose, track_tf, tt_tf) in enumerate(it):
         track_tfs.append(track_tf)
         tt_tfs.append(tt_tf)
         tf_target2tt_i = tt_tf @ initials["target2tt_0"] 
         tf_target2base_i = np.linalg.inv(initials["track2tt"] @ track_tf @ initials["base2track"]) @ tf_target2tt_i
         tf_target2cam_i = np.linalg.inv(hand_pose @ initials["cam2ee"]) @ tf_target2base_i
-        # print(f"********* {idx} ***********")
-        # print_vec(tf_target2tt_i)
-        # print_vec(tf_target2base_i)
-        # print_vec(tf_target2cam_i)
-        # print("*********")
         append_dict_list(initials, "target2tt", tf_target2tt_i) 
         append_dict_list(initials, "target2cam", tf_target2cam_i) 
         append_dict_list(initials, "target2base", tf_target2base_i) 
@@ -200,5 +235,5 @@ def calibrate_base_to_tt():
                 
 
 if __name__ == "__main__":
-    calibrate_base_to_tt()
+    calibrate_base_to_tt(sim=True)
 
