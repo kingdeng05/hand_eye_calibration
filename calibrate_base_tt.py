@@ -12,7 +12,7 @@ from target import ArucoCubeTarget
 from aruco_detector import ArucoDetector
 from transform_util import euler_vec_to_mat, mat_to_euler_vec
 
-VIS = True
+VIS = False 
 
 np.random.seed(5)
 np.set_printoptions(precision=3, suppress=True)
@@ -34,14 +34,22 @@ def solve_base_to_tt_graph(pts_all, hand_poses, track_tfs, tt_tfs, initials):
     proj_noise = Diagonal.sigmas([2, 2]) 
     hand_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]) # from robot manual 
     track_noise = Diagonal.sigmas([1e-5, 1e-5, 1e-5, 1e-2, 1e-4, 1e-4]) # large noise in x 
-    tt_noise = Diagonal.sigmas([1e-5, 1e-5, 1e-2, 1e-4, 1e-4, 1e-4]) # should only have yaw
+    tt_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-3, 1e-4, 1e-4, 1e-4]) # should only have yaw
     tr2tt_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-6, 0.1, 0.1, 0.1]) # x should be parallel
     base2tr_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 0.1, 1e-4, 1e-4, 1e-4]) # x should be parallel
 
+    # perform noise injection
+    # track2tt_pert = Pose3(initials["track2tt"])
+    # base2track_pert = Pose3(initials["base2track"])
+    track2tt_pert = Pose3(perturb_pose3(initials["track2tt"], 0.01 * np.ones(6)))
+    base2track_pert = Pose3(perturb_pose3(initials["base2track"], 0.01 * np.ones(6)))
+    print("initial diff track2tt: ", mat_to_euler_vec(np.linalg.inv(initials["track2tt"]) @ track2tt_pert.matrix()))
+    print("initial diff base2track: ", mat_to_euler_vec(np.linalg.inv(initials["base2track"]) @ base2track_pert.matrix()))
+
     # set up initial values for time-invariant variables
     values = Values()
-    values.insertPose3(track2tt_key, Pose3(initials["track2tt"]))
-    values.insertPose3(base2track_key, Pose3(initials["base2track"]))
+    values.insertPose3(track2tt_key, track2tt_pert)
+    values.insertPose3(base2track_key, base2track_pert)
     values.insertPose3(cam2ee_key, Pose3(initials["cam2ee"]))
     values.insertCal3DS2(intrinsic_key, Cal3DS2(initials["intrinsic"]))
 
@@ -98,8 +106,11 @@ def solve_base_to_tt_graph(pts_all, hand_poses, track_tfs, tt_tfs, initials):
     print("error change: {} -> {}".format(graph.error(values), graph.error(result)))
 
     # analysis
-    # for idx, factor in enumerate(graph):
-    #     print(f"{names[idx]} factor error: {factor.error(values)}")
+    for idx, factor in enumerate(graph):
+        res_error = factor.error(result)
+        init_error = factor.error(values) 
+        if res_error > init_error and res_error > 1e-5:
+            print(f"{names[idx]} factor error: {factor.error(values)} => {factor.error(result)}")
 
     return result.atPose3(track2tt_key).matrix(), \
            result.atPose3(base2track_key).matrix(), \
@@ -117,10 +128,10 @@ def sim_bag_read(gt):
     intrinsic = gt["intrinsic"]
     target2tt = gt["target2tt_0"]
     target = ArucoCubeTarget(1.035)
-    
+   
     # simulate the movement of different components
-    tt_meas_cnt = 100 
-    track_meas_cnt = 10 
+    tt_meas_cnt = 5 
+    track_meas_cnt = 3 
     tt_readings = np.linspace(0, 2 * np.pi, tt_meas_cnt)
     track_readings = np.random.uniform(0, 1.5, track_meas_cnt)
 
@@ -166,17 +177,21 @@ def sim_ground_truth():
 
 def perturb_pose3(pose_mat, var, current=True):
     assert(len(var) == 6)
-    pert_vec = [np.random.normal(v) for v in var]
+    pert_vec = [np.random.normal(0, v) for v in var]
     pert_mat = euler_vec_to_mat(pert_vec)
     if current:
         return pose_mat @ pert_mat  
     else:
         return pert_mat @ pose_mat
 
-def perturb_initials(initials):
-    pert = deepcopy(initials)
-    # perturb with white noises
-    pert["track2tt"] = perturb_pose3(pert["track2tt"], 0.1 * np.ones(6), 0.1) 
+def perturb_pts(pts, var):
+    # pts must be in (n, 2) or (n, 3)
+    assert pts.shape[1] == len(var)
+    noises = []
+    for v in var:
+        noises.append(np.random.normal(0, v, len(pts)))
+    noises = np.array(noises).T
+    return pts + noises 
 
 def track_reading_to_transform(track_reading):
     # track moves in x direction, 0 is at the very begining
@@ -229,10 +244,19 @@ def calibrate_base_to_tt(sim=True, calib_bag_path=''):
         pts_pair["2d"] = pts_2d
         pts_all.append(pts_pair)
 
+    # add perturbation 
+    pert = deepcopy(initials)
+    pert["track2tt"] = perturb_pose3(pert["track2tt"], [1e-3, 1e-3, 0, 0.1, 0.1, 0.1]) 
+    pert["base2track"] = perturb_pose3(pert["base2track"], [1e-4, 1e-4, 0.1, 0, 0, 0]) 
+    track_tfs = [perturb_pose3(tr_tf, [0, 0, 0, 1e-3, 0, 0]) for tr_tf in track_tfs]
+    tt_tfs = [perturb_pose3(tt_tf, [0, 0, 1e-4, 0, 0, 0]) for tt_tf in tt_tfs]
+    # hand_poses = [perturb_pose3(hand_pose, [1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]) for hand_pose in hand_poses]
+    # pts_all = [{"2d": perturb_pts(pts["2d"], [1, 1]), "3d": pts["3d"]} for pts in pts_all] 
+
+    print("frontend features collection finished, running backend...")
     tf_track2tt, tf_base2track, tfs_target2tt, tfs_target2base, tfs_target2cam = solve_base_to_tt_graph(pts_all, hand_poses, track_tfs, tt_tfs, initials)
-    print(tf_track2tt)
-    print(tf_base2track)
-                
+    print("diff under track coord: ", mat_to_euler_vec(np.linalg.inv(initials["track2tt"]) @ tf_track2tt))
+    print("diff under base coord: ", mat_to_euler_vec(np.linalg.inv(initials["base2track"]) @ tf_base2track))
 
 if __name__ == "__main__":
     calibrate_base_to_tt(sim=True)
