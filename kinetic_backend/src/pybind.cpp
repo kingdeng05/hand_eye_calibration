@@ -26,6 +26,7 @@
 #include "base_tt_factors/track_pose_factor.h"
 #include "base_tt_factors/hand_pose_factor.h"
 #include "base_tt_factors/tt_pose_factor.h"
+#include "base_tt_factors/base_tt_projection_factor.h"
 
 namespace py = pybind11;
 using namespace gtsam;
@@ -219,6 +220,15 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
         .def(py::init<Key, Key, const Pose3, const SharedNoiseModel&, bool, bool>(),
              py::arg("target2tt_i"), py::arg("target2tt_0"), py::arg("tti2tt0_meas"), py::arg("model"),
              py::arg("fix_target2tt_i")=true, py::arg("fix_target2tt_0")=false)
+            ;
+
+    py::class_<BaseTtProjectionFactor, boost::shared_ptr<BaseTtProjectionFactor>, NonlinearFactor>(m, "BaseTtProjectionFactor")
+        .def(py::init<Key, Key, Key, Key, Key, Key, const Point3&, const Point2&, const Pose3&, const Cal3DS2&, const SharedNoiseModel&, bool, bool, bool, bool, bool, bool>(),
+             py::arg("ee2base"), py::arg("base2track"), py::arg("track2track0"), py::arg("track2tt"),
+             py::arg("tt2tt0"), py::arg("target2tt"), py::arg("point_3d"), py::arg("point_2d"), py::arg("cam2ee"),
+             py::arg("intrinsic"), py::arg("model"), py::arg("fix_ee2base")=false, py::arg("fix_base2track")=false,
+             py::arg("fix_track2track0")=false, py::arg("fix_track2tt")=false, py::arg("fix_tt2tt0")=false,
+             py::arg("fix_target2tt")=false)
             ;
 
 }
