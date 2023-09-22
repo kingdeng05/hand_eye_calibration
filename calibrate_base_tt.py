@@ -10,12 +10,22 @@ from py_kinetic_backend import BaseTtProjectionFactor, PriorFactorPose3
 from sim import *
 from target import ArucoCubeTarget
 from aruco_detector import ArucoDetector
-from transform_util import euler_vec_to_mat, mat_to_euler_vec
+from transform_util import euler_vec_to_mat, mat_to_euler_vec, transfer_3d_pts_to_img
+from calibrate_intrinsic import calculate_reproj_error
 
 VIS = False 
 
 np.random.seed(5)
 np.set_printoptions(precision=3, suppress=True)
+
+def print_reproj_stats(pts_2d, pts_proj):
+    local_re = []
+    for pts_2d_frame, pts_proj_frame in zip(pts_2d, pts_proj):
+        err_frame = calculate_reproj_error(pts_2d_frame, pts_proj_frame)
+        local_re.append(err_frame)
+    global_re = np.linalg.norm(np.vstack(pts_2d) - np.vstack(pts_proj), axis=1)
+    print(f"local reproj error:\n  mean: {np.mean(local_re)}, min: {np.min(local_re)}, max: {np.max(local_re)}, std: {np.std(local_re)}")
+    print(f"global reproj error:\n  mean: {np.mean(global_re)}, min: {np.min(global_re)}, max: {np.max(global_re)}, std: {np.std(global_re)}")
 
 def solve_base_to_tt_graph(pts_all, hand_poses, track_tfs, tt_tfs, initials):
     # set up the keys
@@ -34,7 +44,7 @@ def solve_base_to_tt_graph(pts_all, hand_poses, track_tfs, tt_tfs, initials):
     proj_noise = Diagonal.sigmas([2, 2]) 
     hand_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]) # from robot manual 
     track_noise = Diagonal.sigmas([1e-5, 1e-5, 1e-5, 1e-2, 1e-4, 1e-4]) # large noise in x 
-    tt_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-3, 1e-4, 1e-4, 1e-4]) # should only have yaw
+    tt_noise = Diagonal.sigmas([1e-8, 1e-8, 2e-3, 1e-4, 1e-4, 1e-4]) # should only have yaw
     tr2tt_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-6, 0.1, 0.1, 0.1]) # x should be parallel
     base2tr_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 0.1, 1e-4, 1e-4, 1e-4]) # x should be parallel
 
@@ -135,8 +145,8 @@ def solve_base_to_tt_graph_2(pts_all, hand_poses, track_tfs, tt_tfs, initials):
     tr2tt_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-6, 0.1, 0.1, 0.1]) # x should be parallel
     base2tr_prior_noise = Diagonal.sigmas([1e-5, 1e-5, 0.1, 1e-4, 1e-4, 1e-4]) # x should be parallel
     hand_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]) # from robot manual 
-    track_prior_noise = Diagonal.sigmas([1e-5, 1e-5, 1e-5, 1e-2, 1e-5, 1e-5]) # large noise in x 
-    tt_prior_noise = Diagonal.sigmas([1e-5, 1e-5, 1e-3, 1e-5, 1e-5, 1e-5]) # should only have yaw
+    track_prior_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-8, 1e-3, 1e-8, 1e-8]) # large noise in x 
+    tt_prior_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-3, 1e-8, 1e-8, 1e-8]) # should only have yaw
     target2tt_prior_noise = Diagonal.sigmas([1e-2, 1e-5, 1e-5, 1e-4, 1e-1, 1e-1]) # should have mainly roll and y and z are unknown. 
 
     # perform noise injection
@@ -214,6 +224,8 @@ def solve_base_to_tt_graph_2(pts_all, hand_poses, track_tfs, tt_tfs, initials):
     # for idx, factor in enumerate(graph):
     #     res_error = factor.error(result)
     #     init_error = factor.error(values) 
+    #     # if "proj" not in names[idx]:
+    #     #     print(f"{names[idx]} factor error: {factor.error(values)} => {factor.error(result)}")
     #     if res_error > init_error and res_error > 1e-5:
     #         print(f"{names[idx]} factor error: {factor.error(values)} => {factor.error(result)}")
     print("error change: {} -> {}".format(graph.error(values), graph.error(result)))
@@ -230,6 +242,8 @@ def print_vec(mat):
     print(mat_to_euler_vec(mat, use_deg=True))
 
 def sim_bag_read(gt):
+    # make sure using the same seed to make the results the same
+    np.random.seed(10)
     track2tt = gt["track2tt"]
     base2track = gt["base2track"]
     cam2ee = gt["cam2ee"]
@@ -238,8 +252,8 @@ def sim_bag_read(gt):
     target = ArucoCubeTarget(1.035)
    
     # simulate the movement of different components
-    tt_meas_cnt = 10 
-    track_meas_cnt = 5 
+    tt_meas_cnt = 5
+    track_meas_cnt = 1 
     tt_readings = np.linspace(0, 2 * np.pi, tt_meas_cnt)
     track_readings = np.random.uniform(0, 1.5, track_meas_cnt)
 
@@ -277,7 +291,7 @@ def read_bag():
 def sim_ground_truth():
     gt = dict()
     gt["track2tt"] = euler_vec_to_mat([0, 0, -180, 3.71, 0, 0.38], use_deg=True)
-    gt["base2track"] = euler_vec_to_mat([0, 0, 0, 0, 0, 0], use_deg=True)
+    gt["base2track"] = euler_vec_to_mat([0, 0, 1, 0, 0, 0], use_deg=True)
     gt["cam2ee"] = euler_vec_to_mat([-90.456, -0.105, -89.559, 0.131, 0.002, 0], use_deg=True)
     gt["intrinsic"] = [1180.976, 1178.135, 0., 1033.019, 796.483, -0.211, 0.056, -0.001, -0.001]
     gt["target2tt_0"] = euler_vec_to_mat([-90, 0, 90, 1.8, 0, 0.525], use_deg=True)
@@ -374,10 +388,8 @@ def calibrate_base_to_tt_2(sim=True, calib_bag_path='', perturb=False):
     initials = sim_ground_truth() 
 
     # read data in either sim mode or actual bag
-    if sim:
-        it = sim_bag_read(initials)
-    else:
-        it = read_bag(initials)
+    read = sim_bag_read if sim else read_bag 
+    it = read(initials)
 
     for _, (pts_3d, pts_2d, hand_pose, track_tf, tt_tf) in enumerate(it):
         track_tfs.append(track_tf)
@@ -394,9 +406,10 @@ def calibrate_base_to_tt_2(sim=True, calib_bag_path='', perturb=False):
         pert["track2tt"] = perturb_pose3(pert["track2tt"], [1e-3, 1e-3, 0, 0.1, 0.1, 1e-2]) 
         pert["base2track"] = perturb_pose3(pert["base2track"], [1e-5, 1e-5, 0.1, 0, 0, 0]) 
         track_tfs = [perturb_pose3(tr_tf, [0, 0, 0, 1e-2, 0, 0]) for tr_tf in track_tfs]
-        tt_tfs = [perturb_pose3(tt_tf, [0, 0, 1e-3, 0, 0, 0]) for tt_tf in tt_tfs]
+        tt_tfs = [perturb_pose3(tt_tf, [0, 0, 2e-3, 0, 0, 0]) for tt_tf in tt_tfs]
         hand_poses = [perturb_pose3(hand_pose, [1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]) for hand_pose in hand_poses]
         pts_all = [{"2d": perturb_pts(pts["2d"], [1, 1]), "3d": pts["3d"]} for pts in pts_all] 
+        pert["target2tt"] = perturb_pose3(pert["track2tt"], [1e-2, 1e-5, 1e-5, 1e-4, 1e-1, 1e-1])
     else:
         pert = initials
 
@@ -406,6 +419,19 @@ def calibrate_base_to_tt_2(sim=True, calib_bag_path='', perturb=False):
     print("diff of base to track: ", mat_to_euler_vec(np.linalg.inv(initials["base2track"]) @ tf_base2track))
     print("diff of ee to base: ", mat_to_euler_vec(np.linalg.inv(hand_poses[0]) @ tf_ee2base))
     print("diff of target to tt: ", mat_to_euler_vec(np.linalg.inv(initials["target2tt_0"]) @ tf_target2tt))
+
+    # calculate reprojection error
+    it = read(initials)
+    pts_2d_all = [] 
+    pts_proj_all = []
+    for _, ((pts_3d, pts_2d, _, _, _), track_tf, tt_tf) in enumerate(zip(it, track_tfs, tt_tfs)):
+        tf_target2tt_i = tt_tf @ tf_target2tt
+        tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_track2tt @ track_tf @ tf_base2track @ tf_ee2base @ initials["cam2ee"] 
+        pts_proj = transfer_3d_pts_to_img(pts_3d, tf_cam2target, initials["intrinsic"])
+        pts_2d_all.append(pts_2d)
+        pts_proj_all.append(pts_proj)
+    print_reproj_stats(pts_2d_all, pts_proj_all)
+
 
 if __name__ == "__main__":
     # calibrate_base_to_tt(sim=True)
