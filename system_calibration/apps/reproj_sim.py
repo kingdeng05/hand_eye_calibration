@@ -5,10 +5,10 @@ from matplotlib import pyplot as plt
 
 from py_kinetic_backend import Pose3, Rot3, PinholeCameraCal3DS2, Cal3DS2
 
+from system_calibration.simulation import * 
+from system_calibration.backend import calib_rm_factor_graph
+
 from randomised_traj_gen import traj_gen 
-from sim import * 
-from target import CheckerBoardTarget
-from rm_factor_graph import calib_rm_factor_graph
 
 np.random.seed(5)
 vis_target = False

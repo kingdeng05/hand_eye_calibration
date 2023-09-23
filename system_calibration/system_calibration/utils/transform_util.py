@@ -16,11 +16,4 @@ def mat_to_euler_vec(mat, use_deg=True):
     trans_vec = pose.translation().tolist()
     return np.array(rot_vec + trans_vec) 
 
-def transfer_3d_pts_to_img(pts_3d, tf_cam_pose, intrinsic_vec):
-    cam = PinholeCameraCal3DS2(Pose3(tf_cam_pose), Cal3DS2(intrinsic_vec))
-    pts_proj = []
-    for pt_3d in pts_3d:
-        pts_proj.append(cam.project(pt_3d))
-    return np.array(pts_proj)
-
 

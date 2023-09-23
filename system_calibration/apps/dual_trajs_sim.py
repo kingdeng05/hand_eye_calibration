@@ -2,8 +2,7 @@ import cv2
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-from dhe_factor_graph import calibrate_dhe_factor_graph 
-# from py_kinetic_factors import calibrate_dhe_factor_graph 
+from system_calibration.backend import calibrate_dhe_factor_graph 
 
 np.random.seed(5)
 np.set_printoptions(precision=4, suppress=True)

@@ -8,7 +8,7 @@ from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose
 from matplotlib import pyplot as plt
 
-from aruco_detector import ArucoDetector
+from system_calibration.system_calibration.frontend.aruco_detector import ArucoDetector
 
 bridge = CvBridge()
 detector = ArucoDetector(vis=False)

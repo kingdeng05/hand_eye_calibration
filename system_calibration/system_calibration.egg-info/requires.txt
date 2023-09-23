@@ -1,0 +1,5 @@
+PyYaml
+apriltag
+numpy
+opencv-python
+shapely

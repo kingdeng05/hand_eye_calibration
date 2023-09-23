@@ -4,9 +4,7 @@ from matplotlib import pyplot as plt
 
 from py_kinetic_backend import Pose3, Rot3, Cal3DS2, PinholeCameraCal3DS2
 
-from sim import * 
-from target import CheckerBoardTarget, ArucoCubeTarget
-from robot_pose_validator import MoveGroup
+from system_calibration.simulation import * 
 
 VIS = True 
 np.random.seed(5)

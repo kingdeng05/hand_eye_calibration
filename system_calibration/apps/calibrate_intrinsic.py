@@ -6,8 +6,9 @@ from matplotlib import pyplot as plt
 
 from collections import defaultdict
 
-from aruco_detector import ArucoDetector
-from target import ArucoBoardTarget 
+from system_calibration.frontend import ArucoDetector
+from system_calibration.simulation import ArucoBoardTarget 
+from system_calibration.utils import calculate_reproj_error
 
 
 def jet_colormap(value):
@@ -56,9 +57,6 @@ def draw_points_with_reprojection_error(image_size, projected_points, reprojecti
     cv.imshow('Reprojection Errors', img)
     cv.waitKey(0)
     cv.destroyAllWindows()
-
-def calculate_reproj_error(pts_2d, pts_proj):
-    return np.linalg.norm(pts_2d - pts_proj, axis=1).mean()
 
 def reprojection_plot(pts_2d, pts_proj):
     diff = pts_proj - pts_2d
