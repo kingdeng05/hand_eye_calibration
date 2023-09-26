@@ -120,7 +120,7 @@ def calibrate_intrinsic(bag_path, saved_path=".calibration.yaml", debug=False):
                 pts_3d_all.append(pts_3d_target)
                 pts_2d_all.append(pts_2d_target)
 
-            cv.imwrite(f"img{idx}.png", img)
+            # cv.imwrite(f"img{idx}.png", img)
 
     print(f"Using {len(pts_3d_all)} for intrinsic calibration")
 
