@@ -27,6 +27,7 @@
 #include "base_tt_factors/hand_pose_factor.h"
 #include "base_tt_factors/tt_pose_factor.h"
 #include "base_tt_factors/base_tt_projection_factor.h"
+#include "geometry/Cal3Rational.h"
 
 namespace py = pybind11;
 using namespace gtsam;
@@ -56,6 +57,7 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
     py::class_<OptionalJacobian<2, 6>>(m, "OptionalJacobian26");
     py::class_<OptionalJacobian<2, 11>>(m, "OptionalJacobian211");
     py::class_<OptionalJacobian<2, 15>>(m, "OptionalJacobian215");
+    py::class_<OptionalJacobian<2, 18>>(m, "OptionalJacobian218");
     py::class_<OptionalJacobian<3, 3>>(m, "OptionalJacobian33");
     py::class_<OptionalJacobian<3, 6>>(m, "OptionalJacobian36");
     py::class_<OptionalJacobian<6, 6>>(m, "OptionalJacobian66");
@@ -101,9 +103,11 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
         .def("insertPose3", &gtsam::Values::insert<Pose3>)
         .def("insertCal3_S2", &gtsam::Values::insert<Cal3_S2>)
         .def("insertCal3DS2", &gtsam::Values::insert<Cal3DS2>)
+        .def("insertCal3Rational", &gtsam::Values::insert<Cal3Rational>)
         .def("atPose3", &Values::at<Pose3>)
         .def("atCal3_S2", &Values::at<Cal3_S2>)
         .def("atCal3DS2", &Values::at<Cal3DS2>)
+        .def("atCal3Rational", &Values::at<Cal3Rational>)
         ;
 
     // NonlinearFactorGraph
@@ -149,6 +153,13 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
             py::arg(), py::arg()=OptionalJacobian<2, 15>(),
             py::arg()=OptionalJacobian<2, 3>())
         ;
+    py::class_<PinholeCamera<Cal3Rational>, boost::shared_ptr<PinholeCamera<Cal3Rational>>>(m, "PinholeCameraCal3Rational")
+        .def(py::init<const Pose3&, const Cal3Rational&>())
+        .def("project", static_cast<Point2 (PinholeCamera<Cal3Rational>::*)(const Point3&, OptionalJacobian<2, 18>, OptionalJacobian<2, 3>) const>(&PinholeCamera<Cal3Rational>::project2),
+            py::arg(), py::arg()=OptionalJacobian<2, 18>(),
+            py::arg()=OptionalJacobian<2, 3>())
+        ;
+
     py::class_<Cal3_S2, boost::shared_ptr<Cal3_S2>>(m, "Cal3_S2")
         .def(py::init<const Vector&>())
         .def("vector", &Cal3_S2::vector)
@@ -156,6 +167,10 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
     py::class_<Cal3DS2, boost::shared_ptr<Cal3DS2>>(m, "Cal3DS2")
         .def(py::init<const Vector&>())
         .def("vector", &Cal3DS2::vector)
+        ;
+    py::class_<Cal3Rational, boost::shared_ptr<Cal3Rational>>(m, "Cal3Rational")
+        .def(py::init<const Vector&>())
+        .def("vector", &Cal3Rational::vector)
         ;
 
     // PriorFactor
@@ -198,6 +213,13 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
             ;
 
     py::class_<GeneralProjectionFactor<Cal3DS2>, boost::shared_ptr<GeneralProjectionFactor<Cal3DS2>>, NonlinearFactor>(m, "GeneralProjectionFactorCal3DS2")
+        .def(py::init<Key, Key, const Point3, const Point2, const SharedNoiseModel&, bool, bool>(),
+             py::arg("world2cam"), py::arg("intrinsic"), 
+             py::arg("point_in_target"), py::arg("measurement"), py::arg("model"),
+             py::arg("fix_world2cam")=false, py::arg("fix_intrinsic")=false)
+            ;
+
+    py::class_<GeneralProjectionFactor<Cal3Rational>, boost::shared_ptr<GeneralProjectionFactor<Cal3Rational>>, NonlinearFactor>(m, "GeneralProjectionFactorCal3Rational")
         .def(py::init<Key, Key, const Point3, const Point2, const SharedNoiseModel&, bool, bool>(),
              py::arg("world2cam"), py::arg("intrinsic"), 
              py::arg("point_in_target"), py::arg("measurement"), py::arg("model"),

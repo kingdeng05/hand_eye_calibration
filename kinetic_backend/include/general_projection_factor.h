@@ -64,6 +64,7 @@ public:
       if (fix_intrinsic_) {
         *H_intrinsic = gtsam::Matrix29::Zero();
       } else {
+        std::cout << D_proj_intr << std::endl;
         *H_intrinsic = D_proj_intr;
       }
     }

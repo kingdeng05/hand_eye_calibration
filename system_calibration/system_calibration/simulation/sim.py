@@ -28,9 +28,16 @@ def create_cube_t2w_gt():
     t2w = Pose3(calib_rot_gt, calib_t_gt).matrix()
     return t2w 
 
-def create_intrinsic_distortion(focal_length="6mm"):
+def create_intrinsic_distortion(focal_length="6mm", distortion_model="Cal3DS2"):
     focal_length_xy = FOCAL_LENGTH[focal_length]
-    return np.array([focal_length_xy, focal_length_xy, 0, IMG_WIDTH/2, IMG_HEIGHT/2, 0, 0, 0, 0])
+    if distortion_model == "Cal3DS2":
+        return np.array([focal_length_xy, focal_length_xy, 0, IMG_WIDTH/2, IMG_HEIGHT/2, 0, 0, 0, 0])
+    elif distortion_model == "Cal3Rational":
+        return np.array([focal_length_xy, focal_length_xy, IMG_WIDTH/2, IMG_HEIGHT/2, 0, 0, 0, 0, 0, 0, 0, 0])
+    elif distortion_model == "Cal3_S2":
+        return np.array([focal_length_xy, focal_length_xy, IMG_WIDTH/2, IMG_HEIGHT/2])
+    else:
+        raise NotImplementedError(f"Model {distortion_model} isn't supported!")
 
 class VisibleCamera(object):
     def __init__(self, intrinsic):
