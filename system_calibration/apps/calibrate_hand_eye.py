@@ -5,6 +5,7 @@ from collections import defaultdict
 from py_kinetic_backend import Pose3, Rot3, PinholeCameraCal3DS2, Cal3DS2
 from matplotlib import pyplot as plt
 
+from py_kinetic_backend import PinholeCameraCal3Rational, Cal3Rational
 from system_calibration.IO import read_handeye_bag
 from system_calibration.backend import calib_rm_factor_graph, calib_rm2_factor_graph
 from system_calibration.backend import calibrate_dhe_factor_graph 
@@ -16,6 +17,7 @@ from calibrate_intrinsic import calibrate_intrinsic, reprojection_plot
 
 random.seed(5)
 np.set_printoptions(precision=3, suppress=True)
+VIS = True
 
 
 def pose_msg_to_tf(pose_msg):
@@ -24,6 +26,9 @@ def pose_msg_to_tf(pose_msg):
 
 def Cal3DS2_to_KD(intr):
     return np.array([[intr[0], intr[2], intr[3]], [0, intr[1], intr[4]], [0, 0, 1]]), intr[5:].reshape(-1, 4)
+
+def Cal3Rational_to_KD(intr):
+    return np.array([[intr[0], 0., intr[2]], [0, intr[1], intr[3]], [0, 0, 1]]), intr[4:].reshape(-1, 8)
 
 def tf_to_vec(tf, use_degree=True):
     pose = Pose3(tf)
@@ -147,6 +152,8 @@ def calibrate_hand_eye_dhe(bag_path):
     detector = ArucoDetector(vis=False)
     hand_poses = []
     eye_poses = []
+    K, D = Cal3DS2_to_KD(intrinsic)
+    print(K, D)
     for img, pose_msg, _, _, _ in read_handeye_bag(bag_path):
         corners, ids = detector.detect(img)
         if len(ids) == 0:
@@ -162,7 +169,6 @@ def calibrate_hand_eye_dhe(bag_path):
                 pts_2d.append(pt_2d)
         pts_3d = np.array(pts_3d, dtype=np.float32)
         pts_2d = np.array(pts_2d, dtype=np.float32)
-        K, D = Cal3DS2_to_KD(intrinsic)
         _, rvec, tvec = cv.solvePnP(pts_3d, pts_2d, K, D)
         R = cv.Rodrigues(rvec)[0]
         eye_pose = Pose3(Rot3(R), tvec).matrix()
@@ -196,6 +202,7 @@ def calibrate_hand_eye_rm2(bag_path):
     pts_all = []
     hand_poses = []
     eye_poses = []
+    K, D = Cal3Rational_to_KD(intrinsic)
     for img, pose_msg, _, _, _ in read_handeye_bag(bag_path):
         pts = defaultdict(list) 
         corners, ids = detector.detect(img)
@@ -218,7 +225,6 @@ def calibrate_hand_eye_rm2(bag_path):
         # compute initial value for eye poses
         pts_3d = np.array(pts_3d, dtype=np.float32)
         pts_2d = np.array(pts_2d, dtype=np.float32)
-        K, D = Cal3DS2_to_KD(intrinsic)
         _, rvec, tvec = cv.solvePnP(pts_3d, pts_2d, K, D)
         R = cv.Rodrigues(rvec)[0]
         eye_pose = Pose3(Rot3(R), tvec).matrix()
@@ -259,7 +265,7 @@ def calibrate_hand_eye_rm2(bag_path):
         pts_all.append(pts)
         # projection 
         c2t = np.linalg.inv(cam_poses_ret[idx]) 
-        camera = PinholeCameraCal3DS2(Pose3(c2t), Cal3DS2(intrinsic_ret))
+        camera = PinholeCameraCal3Rational(Pose3(c2t), Cal3Rational(intrinsic_ret))
         img_copy = img.copy()
         pts_proj = []
         for pt_2d, pt_3d in zip(pts["2d"], pts["3d"]): 
@@ -271,20 +277,21 @@ def calibrate_hand_eye_rm2(bag_path):
             pts_all_2d.append(pt_2d)
             pts_all_proj.append(pt_proj)
         # visualization
-        # pts_proj = np.array(pts_proj)
-        # if len(pts_proj):
-        #     error_cur = calculate_reproj_error(pts_proj, pts["2d"])
-        #     cv.putText(
-        #         img_copy, 
-        #         f"reproj_error: {error_cur}",
-        #         (200, 200),
-        #         cv.FONT_HERSHEY_SIMPLEX,
-        #         1,
-        #         (0, 255, 0)
-        #     )
-        # img_copy = cv.resize(img_copy, (int(img_copy.shape[1]/2), int(img_copy.shape[0]/2)))
-        # cv.imshow("proj", img_copy)
-        # cv.waitKey(0)
+        if VIS:
+            pts_proj = np.array(pts_proj)
+            if len(pts_proj):
+                error_cur = calculate_reproj_error(pts_proj, pts["2d"])
+                cv.putText(
+                    img_copy, 
+                    f"reproj_error: {error_cur}",
+                    (200, 200),
+                    cv.FONT_HERSHEY_SIMPLEX,
+                    1,
+                    (0, 255, 0)
+                )
+            img_copy = cv.resize(img_copy, (int(img_copy.shape[1]/2), int(img_copy.shape[0]/2)))
+            cv.imshow("proj", img_copy)
+            cv.waitKey(0)
 
     # calculate overall reprojection error
     pts_all_2d = np.array(pts_all_2d)

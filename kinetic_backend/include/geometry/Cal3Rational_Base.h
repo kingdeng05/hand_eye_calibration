@@ -36,8 +36,8 @@ public:
                         k4_(0), k5_(0), k6_(0), p1_(0), p2_(0) {}
 
   Cal3Rational_Base(double fx, double fy, double u0, double v0,
-      double k1, double k2, double k3, double k4, double k5, double k6,
-      double p1 = 0.0, double p2 = 0.0) :
+      double k1, double k2, double p1, double p2, double k3, double k4,
+      double k5, double k6) :
   fx_(fx), fy_(fy), u0_(u0), v0_(v0), k1_(k1), k2_(k2), k3_(k3), k4_(k4),
   k5_(k5), k6_(k6), p1_(p1), p2_(p2) {}
 
@@ -103,7 +103,7 @@ public:
   gtsam::Matrix3 K() const;
 
   /// return distortion parameter vector
-  gtsam::Vector8 k() const { return (gtsam::Vector8() << k1_, k2_, k3_, k4_, k5_, k6_, p1_, p2_).finished(); }
+  gtsam::Vector8 k() const { return (gtsam::Vector8() << k1_, k2_, p1_, p2_, k3_, k4_, k5_, k6_).finished(); }
 
   /// Return all parameters as a vector
   gtsam::Vector12 vector() const;

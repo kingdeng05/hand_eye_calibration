@@ -15,6 +15,8 @@ from system_calibration.IO import read_handeye_bag
 from system_calibration.backend import solve_intrinsic_rational, IntrinsicCailbrator
 
 
+np.set_printoptions(precision=3, suppress=True)
+
 def jet_colormap(value):
     """ Converts a value in the range [0, 1] to a color using a Jet-like colormap.
 
@@ -79,11 +81,11 @@ def reprojection_plot(pts_2d, pts_proj):
 
 def KD_to_intrinsic_vec(K, d, model="Cal3Rational"):
     if isinstance(d, np.ndarray):
-        d = d.tolist()
+        d = d.flatten().tolist()
     if model == "Cal3Rational":
-        return [K[0, 0], K[1, 1], K[0, 2], K[1, 2]] + d 
+        return [K[0, 0], K[1, 1], K[0, 2], K[1, 2]] + d[:8] 
     elif model == "Cal3DS2":
-        return [K[0, 0], K[1, 1], K[0, 1], K[0, 2], K[1, 2]] + d
+        return [K[0, 0], K[1, 1], K[0, 1], K[0, 2], K[1, 2]] + d[:4]
     elif model == "Cal3_S2":
         return [K[0, 0], K[1, 1], K[0, 1], K[0, 2], K[1, 2]] 
     else:
@@ -126,35 +128,37 @@ def calibrate_intrinsic(bag_path, saved_path=".calibration.yaml", debug=False):
 
     # note that for filtering to work, it has to at least run 2 iterations 
     K, d, rvecs, tvecs, pts_3d_ft, pts_2d_ft = IntrinsicCailbrator(iteration=5, outlier_perc=99, flags=cv.CALIB_RATIONAL_MODEL).calibrate(pts_3d_all, pts_2d_all, img.shape[:2][::-1])
-    intrinsic_vec = KD_to_intrinsic_vec(K, d.tolist())
 
-    # Compute reprojection error
-    pts_2d_proj = []
-    mean_error = []
-    for i in range(len(pts_3d_ft)):
-        imgpoints2, _ = cv.projectPoints(pts_3d_ft[i], rvecs[i], tvecs[i], K, d)
-        pts_2d_proj.append(imgpoints2.reshape(-1, 2))
-        error = cv.norm(pts_2d_ft[i], imgpoints2.reshape(-1, 1, 2), cv.NORM_L2) / len(imgpoints2)
-        mean_error.append(error)
-    pts_2d_proj = np.vstack(pts_2d_proj)
-    pts_2d_ft = np.vstack(pts_2d_ft)
-    pts_2d_ft = pts_2d_ft.reshape(-1, 2) 
-    reprojection_plot(pts_2d_ft, pts_2d_proj)
-    print(f"Total error: {np.array(mean_error).mean()}")
-    print(f"min/max error: {np.array(mean_error).min()}, {np.array(mean_error).max()}")
-    plt.hist(np.linalg.norm(pts_2d_proj - pts_2d_ft, axis=1), bins=50, color='blue', edgecolor='black')
-    plt.title('Histogram of Reprojection Errors')
-    plt.xlabel('Reprojection Error')
-    plt.ylabel('Frequency')
-    plt.show()
-    # draw_points_with_reprojection_error(img.shape[:2][::-1], pts_2d_all, np.linalg.norm(pts_2d_proj - pts_2d_all, axis=1))
+    if debug:
+        # Compute reprojection error
+        pts_2d_proj = []
+        mean_error = []
+        for i in range(len(pts_3d_ft)):
+            imgpoints2, _ = cv.projectPoints(pts_3d_ft[i], rvecs[i], tvecs[i], K, d)
+            pts_2d_proj.append(imgpoints2.reshape(-1, 2))
+            error = cv.norm(pts_2d_ft[i], imgpoints2.reshape(-1, 1, 2), cv.NORM_L2) / len(imgpoints2)
+            mean_error.append(error)
+        pts_2d_proj = np.vstack(pts_2d_proj)
+        pts_2d_ft = np.vstack(pts_2d_ft)
+        pts_2d_ft = pts_2d_ft.reshape(-1, 2) 
+        reprojection_plot(pts_2d_ft, pts_2d_proj)
+        print(f"Total error: {np.array(mean_error).mean()}")
+        print(f"min/max error: {np.array(mean_error).min()}, {np.array(mean_error).max()}")
+        plt.hist(np.linalg.norm(pts_2d_proj - pts_2d_ft, axis=1), bins=50, color='blue', edgecolor='black')
+        plt.title('Histogram of Reprojection Errors')
+        plt.xlabel('Reprojection Error')
+        plt.ylabel('Frequency')
+        plt.show()
+        # draw_points_with_reprojection_error(img.shape[:2][::-1], pts_2d_all, np.linalg.norm(pts_2d_proj - pts_2d_all, axis=1))
 
+    intrinsic_vec = KD_to_intrinsic_vec(K, d, model="Cal3Rational")
     print("calibrated intrinsic:\n", intrinsic_vec)
+
     if not debug:
         with open(saved_path, "w+") as f:
             print(f"first time performing calibration, result saved to: {saved_path}")
             yaml.safe_dump({
-                "intrinsic_vec": intrinsic_vec.tolist()
+                "intrinsic_vec":[float(num) for num in intrinsic_vec] 
             }, f, default_flow_style=False)
     return intrinsic_vec 
 
@@ -234,6 +238,6 @@ def calibrate_intrinsic_rational(bag_path):
 
 if __name__ == "__main__":
     bag_name = "/home/fuhengdeng/fuheng.bag"
-    calibrate_intrinsic(bag_name, debug=True)
+    calibrate_intrinsic(bag_name, debug=False)
     # calibrate_intrinsic_rational(bag_name)
 

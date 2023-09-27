@@ -1,9 +1,9 @@
 import numpy as np
 
-from py_kinetic_backend import Diagonal, NonlinearFactorGraph, symbol, Cal3DS2
+from py_kinetic_backend import Diagonal, NonlinearFactorGraph, symbol, Cal3DS2, Cal3Rational
 from py_kinetic_backend import Pose3, Values, LevenbergMarquardtOptimizer
 from py_kinetic_backend import RMFactorCal3DS2, PriorFactorPose3, PriorFactorCal3DS2
-from py_kinetic_backend import HEPoseConstraintFactor, GeneralProjectionFactorCal3DS2 
+from py_kinetic_backend import HEPoseConstraintFactor, GeneralProjectionFactorCal3DS2, GeneralProjectionFactorCal3Rational 
 
 def calib_rm_factor_graph(calib_init, t2w_init, k_init, hand_poses, pts):
     graph = NonlinearFactorGraph()
@@ -75,7 +75,7 @@ def calib_rm2_factor_graph(calib_init, t2w_init, k_init, cam_poses, hand_poses, 
     initials = Values()
     initials.insertPose3(calib_key, Pose3(calib_init))
     initials.insertPose3(w2t_key, Pose3(np.linalg.inv(t2w_init)))
-    initials.insertCal3DS2(k_key, Cal3DS2(k_init))
+    initials.insertCal3Rational(k_key, Cal3Rational(k_init))
 
     hand_meas_noise_model = Diagonal.sigmas([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4])
     t2e_keys = []
@@ -85,7 +85,7 @@ def calib_rm2_factor_graph(calib_init, t2w_init, k_init, cam_poses, hand_poses, 
         initials.insertPose3(t2e_key, Pose3(cam_pose))
         pts_2d, pts_3d = pts["2d"], pts["3d"]
         for pt_2d, pt_3d in zip(pts_2d, pts_3d):
-            proj_factor = GeneralProjectionFactorCal3DS2(
+            proj_factor = GeneralProjectionFactorCal3Rational(
                 t2e_key,
                 k_key,
                 pt_3d,
@@ -116,5 +116,5 @@ def calib_rm2_factor_graph(calib_init, t2w_init, k_init, cam_poses, hand_poses, 
 
     return result.atPose3(calib_key).matrix(), \
            np.linalg.inv(result.atPose3(w2t_key).matrix()), \
-           result.atCal3DS2(k_key).vector(), \
+           result.atCal3Rational(k_key).vector(), \
            [result.atPose3(t2e_key).matrix() for t2e_key in t2e_keys]

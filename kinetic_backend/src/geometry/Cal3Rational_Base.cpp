@@ -16,7 +16,7 @@ namespace kinetic_backend {
 /* ************************************************************************* */
 Cal3Rational_Base::Cal3Rational_Base(const Vector &v):
     fx_(v[0]), fy_(v[1]), u0_(v[2]), v0_(v[3]), k1_(v[4]), k2_(v[5]),
-    k3_(v[6]), k4_(v[7]), k5_(v[8]), k6_(v[9]), p1_(v[10]), p2_(v[11]){}
+    k3_(v[8]), k4_(v[9]), k5_(v[10]), k6_(v[11]), p1_(v[6]), p2_(v[7]){}
 
 /* ************************************************************************* */
 Matrix3 Cal3Rational_Base::K() const {
@@ -28,7 +28,7 @@ Matrix3 Cal3Rational_Base::K() const {
 /* ************************************************************************* */
 Vector12 Cal3Rational_Base::vector() const {
   Vector12 v;
-  v << fx_, fy_, u0_, v0_, k1_, k2_, k3_, k4_, k5_, k6_, p1_, p2_;
+  v << fx_, fy_, u0_, v0_, k1_, k2_, p1_, p2_, k3_, k4_, k5_, k6_;
   return v;
 }
 

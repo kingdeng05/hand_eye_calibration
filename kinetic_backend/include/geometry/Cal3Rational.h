@@ -32,9 +32,9 @@ public:
   Cal3Rational() : Base() {}
 
   Cal3Rational(double fx, double fy, double u0, double v0,
-      double k1, double k2, double k3, double k4, double k5, double k6,
-      double p1 = 0.0, double p2 = 0.0) :
-        Base(fx, fy, u0, v0, k1, k2, k3, k4, k5, k6, p1, p2) {}
+      double k1, double k2, double p1, double p2, double k3, 
+      double k4, double k5, double k6) :
+        Base(fx, fy, u0, v0, k1, k2, p1, p2, k3, k4, k5, k6) {}
 
   virtual ~Cal3Rational() {}
 
