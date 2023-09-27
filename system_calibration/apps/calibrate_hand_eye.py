@@ -1,10 +1,12 @@
+import os
+import yaml
 import random
 import numpy as np
 import cv2 as cv 
 from collections import defaultdict
-from py_kinetic_backend import Pose3, Rot3, PinholeCameraCal3DS2, Cal3DS2
 from matplotlib import pyplot as plt
 
+from py_kinetic_backend import Pose3, Rot3, PinholeCameraCal3DS2, Cal3DS2
 from py_kinetic_backend import PinholeCameraCal3Rational, Cal3Rational
 from system_calibration.IO import read_handeye_bag
 from system_calibration.backend import calib_rm_factor_graph, calib_rm2_factor_graph
@@ -17,8 +19,6 @@ from calibrate_intrinsic import calibrate_intrinsic, reprojection_plot
 
 random.seed(5)
 np.set_printoptions(precision=3, suppress=True)
-VIS = True
-
 
 def pose_msg_to_tf(pose_msg):
     rot = Rot3(pose_msg.orientation.w, pose_msg.orientation.x, pose_msg.orientation.y, pose_msg.orientation.z)
@@ -192,7 +192,11 @@ def calibrate_hand_eye_dhe(bag_path):
     print("least squares solution: ", tf_to_vec(calib_opt))
     print("calib diff: ", tf_to_vec(Pose3(calib_init).between(Pose3(calib_opt)).matrix()))
 
-def calibrate_hand_eye_rm2(bag_path):
+def calibrate_hand_eye_rm2(bag_path, debug=False, file_path='.cam2ee.yaml'):
+    if not debug and os.path.exists(file_path):
+        with open(file_path) as f:
+            cam2ee = np.array(yaml.safe_load(f)["transformation"]) 
+            return cam2ee
     calib_init = create_calib_gt()
     t2w_init = create_cube_t2w_gt()
     intrinsic = calibrate_intrinsic(bag_path)
@@ -277,7 +281,7 @@ def calibrate_hand_eye_rm2(bag_path):
             pts_all_2d.append(pt_2d)
             pts_all_proj.append(pt_proj)
         # visualization
-        if VIS:
+        if debug:
             pts_proj = np.array(pts_proj)
             if len(pts_proj):
                 error_cur = calculate_reproj_error(pts_proj, pts["2d"])
@@ -297,7 +301,16 @@ def calibrate_hand_eye_rm2(bag_path):
     pts_all_2d = np.array(pts_all_2d)
     pts_all_proj = np.array(pts_all_proj)
     print("reprojection error: ", calculate_reproj_error(pts_all_2d, pts_all_proj))
-    reprojection_plot(pts_all_2d, pts_all_proj)
+    if debug:
+        reprojection_plot(pts_all_2d, pts_all_proj)
+
+    if not debug:
+        with open(file_path, "w+") as f:
+            yaml.safe_dump({
+                "transformation": calib_ret.tolist()
+            }, f, default_flow_style=False)
+            
+    return calib_ret 
 
 
 if __name__ == "__main__":
@@ -305,4 +318,4 @@ if __name__ == "__main__":
     bag_name = "/home/fuhengdeng/fuheng.bag"
     # calibrate_hand_eye_dhe(bag_name)
     # calibrate_hand_eye_rm(bag_name)
-    calibrate_hand_eye_rm2(bag_name)
+    calibrate_hand_eye_rm2(bag_name, vis=False)

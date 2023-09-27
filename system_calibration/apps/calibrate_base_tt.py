@@ -9,6 +9,9 @@ from system_calibration.frontend import ArucoDetector
 from system_calibration.backend import solve_base_to_tt_graph_2 
 from system_calibration.utils import euler_vec_to_mat, mat_to_euler_vec
 from system_calibration.utils import transfer_3d_pts_to_img, calculate_reproj_error
+from system_calibration.utils import create_camera 
+from calibrate_intrinsic import calibrate_intrinsic
+from calibrate_hand_eye import calibrate_hand_eye_rm2
 
 VIS = False 
 
@@ -52,8 +55,9 @@ def sim_bag_read(gt):
             tt_tf = tt_reading_to_transform(tt)
             target2tt_i = tt_tf @ target2tt
             target2cam = np.linalg.inv(cam2tt) @ target2tt_i 
-            cam = VisibleCamera(intrinsic) 
-            pts_2d, pts_3d = cam.project(np.linalg.inv(target2cam), target, (IMG_WIDTH, IMG_HEIGHT))
+            cam_pose = np.linalg.inv(target2cam)
+            cam = VisibleCamera(create_camera(cam_pose, intrinsic))
+            pts_2d, pts_3d = cam.project(cam_pose, target, (IMG_WIDTH, IMG_HEIGHT))
             if VIS:
                 img = np.zeros((IMG_HEIGHT, IMG_WIDTH, 3))
                 for pt in pts_2d.astype(int):
@@ -74,12 +78,14 @@ def sim_bag_read(gt):
 def read_bag():
     pass
 
-def sim_ground_truth():
+def sim_ground_truth(bag_path):
     gt = dict()
     gt["track2tt"] = euler_vec_to_mat([0, 0, -180, 3.71, 0, 0.38], use_deg=True)
-    gt["base2track"] = euler_vec_to_mat([0, 0, 1, 0, 0, 0], use_deg=True)
-    gt["cam2ee"] = euler_vec_to_mat([-90.456, -0.105, -89.559, 0.131, 0.002, 0], use_deg=True)
-    gt["intrinsic"] = [1180.976, 1178.135, 0., 1033.019, 796.483, -0.211, 0.056, -0.001, -0.001]
+    gt["base2track"] = euler_vec_to_mat([0, 0, 0, 0, 0, 0], use_deg=True)
+    # gt["cam2ee"] = euler_vec_to_mat([-90.456, -0.105, -89.559, 0.131, 0.002, 0], use_deg=True)
+    # gt["intrinsic"] = [1180.976, 1178.135, 1033.019, 796.483, -0.211, 0.056, -0.001, -0.001]
+    gt["intrinsic"] = calibrate_intrinsic(bag_path, debug=False) 
+    gt["cam2ee"] = calibrate_hand_eye_rm2(bag_path, debug=False) 
     gt["target2tt_0"] = euler_vec_to_mat([-90, 0, 90, 1.8, 0, 0.525], use_deg=True)
     return gt 
 
@@ -129,7 +135,7 @@ def calibrate_base_to_tt(bag_path=None, perturb=False):
     track_tfs = []
     tt_tfs = []
     pts_all = []
-    initials = sim_ground_truth() 
+    initials = sim_ground_truth("/home/fuhengdeng/fuheng.bag") 
 
     # read data in either sim mode or actual bag
     if bag_path is not None and os.path.exists(bag_path):

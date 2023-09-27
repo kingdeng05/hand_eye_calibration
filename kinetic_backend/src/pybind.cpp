@@ -244,8 +244,8 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
              py::arg("fix_target2tt_i")=true, py::arg("fix_target2tt_0")=false)
             ;
 
-    py::class_<BaseTtProjectionFactor, boost::shared_ptr<BaseTtProjectionFactor>, NonlinearFactor>(m, "BaseTtProjectionFactor")
-        .def(py::init<Key, Key, Key, Key, Key, Key, const Point3&, const Point2&, const Pose3&, const Cal3DS2&, const SharedNoiseModel&, bool, bool, bool, bool, bool, bool>(),
+    py::class_<BaseTtProjectionFactor<Cal3Rational>, boost::shared_ptr<BaseTtProjectionFactor<Cal3Rational>>, NonlinearFactor>(m, "BaseTtProjectionFactor")
+        .def(py::init<Key, Key, Key, Key, Key, Key, const Point3&, const Point2&, const Pose3&, const Cal3Rational&, const SharedNoiseModel&, bool, bool, bool, bool, bool, bool>(),
              py::arg("ee2base"), py::arg("base2track"), py::arg("track2track0"), py::arg("track2tt"),
              py::arg("tt2tt0"), py::arg("target2tt"), py::arg("point_3d"), py::arg("point_2d"), py::arg("cam2ee"),
              py::arg("intrinsic"), py::arg("model"), py::arg("fix_ee2base")=false, py::arg("fix_base2track")=false,

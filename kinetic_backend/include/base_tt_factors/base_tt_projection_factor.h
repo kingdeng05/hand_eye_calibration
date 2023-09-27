@@ -7,7 +7,6 @@
 #include <gtsam/linear/NoiseModel.h>
 #include <gtsam/base/numericalDerivative.h>
 #include <gtsam/geometry/PinholeCamera.h>
-#include <gtsam/geometry/Cal3DS2.h>
 
 #include <boost/optional.hpp>
 
@@ -20,10 +19,10 @@ using gtsam::Matrix;
 using gtsam::Point3;
 using gtsam::Point2;
 using gtsam::PinholeCamera;
-using gtsam::Cal3DS2;
 
 namespace kinetic_backend {
 
+template<typename Calibration>
 class BaseTtProjectionFactor: public NoiseModelFactor6<Pose3, Pose3, Pose3, Pose3, Pose3, Pose3> {
 
 public:
@@ -31,7 +30,7 @@ public:
                          Key key_track2track0, Key key_track2tt, Key key_tt2tt0,
                          Key key_target2tt, const Point3& pt_3d,
                          const Point2& pt_2d, const Pose3& cam2ee,
-                         const Cal3DS2& intrinsic, const SharedNoiseModel& model,
+                         const Calibration& intrinsic, const SharedNoiseModel& model,
                          bool fix_ee2base=false, bool fix_base2track=false, 
                          bool fix_track2track0=false, bool fix_track2tt=false,
                          bool fix_tt2tt0=false, bool fix_target2tt=false):
@@ -80,7 +79,7 @@ public:
     Pose3 cam2target = ee2target.compose(cam2ee_, D_c2t_e2t);
 
     // projection
-    PinholeCamera<Cal3DS2> camera(cam2target, intrinsic_);
+    PinholeCamera<Calibration> camera(cam2target, intrinsic_);
     Point2 proj = camera.project(pt_3d_, D_proj_c2t);
 
     if (H_ee2base) {
@@ -138,7 +137,7 @@ private:
   Point3 pt_3d_; 
   Point2 pt_2d_;
   Pose3 cam2ee_;
-  Cal3DS2 intrinsic_;
+  Calibration intrinsic_;
   bool fix_ee2base_;
   bool fix_base2track_;
   bool fix_track2track0_;

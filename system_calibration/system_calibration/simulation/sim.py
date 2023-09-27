@@ -40,11 +40,10 @@ def create_intrinsic_distortion(focal_length="6mm", distortion_model="Cal3DS2"):
         raise NotImplementedError(f"Model {distortion_model} isn't supported!")
 
 class VisibleCamera(object):
-    def __init__(self, intrinsic):
-        self.intrinsic = intrinsic
+    def __init__(self, camera):
+        self._camera = camera
          
     def project(self, cam_pose, target, img_size):
-        camera = PinholeCameraCal3DS2(Pose3(cam_pose), Cal3DS2(self.intrinsic)) 
         pts_2d = []
         pts_3d = []
         for id in target.use_ids:
@@ -56,7 +55,7 @@ class VisibleCamera(object):
             face_vec_cam = (np.linalg.inv(tf_base2face @ cam_pose)[:3, :3].dot(np.array([0, 0, 1]).reshape(-1, 1))).flatten()
             if self.is_face_visible(face_vec_cam, view_dir):
                 for pt_target in pts_target:
-                    pt_proj = camera.project(pt_target)
+                    pt_proj = self._camera.project(pt_target)
                     if pt_proj[0] >= 0 and pt_proj[0] < img_size[0] and \
                        pt_proj[1] >= 0 and pt_proj[1] < img_size[1]:
                         pts_2d.append(pt_proj) 

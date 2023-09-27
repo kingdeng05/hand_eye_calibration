@@ -1,5 +1,6 @@
-from py_kinetic_backend import HandPoseFactor, GeneralProjectionFactorCal3DS2, TrackPoseFactor, TtPoseFactor 
-from py_kinetic_backend import Diagonal, NonlinearFactorGraph, symbol, Cal3DS2
+from py_kinetic_backend import HandPoseFactor, TrackPoseFactor, TtPoseFactor 
+from py_kinetic_backend import Cal3Rational, GeneralProjectionFactorCal3Rational 
+from py_kinetic_backend import Diagonal, NonlinearFactorGraph, symbol
 from py_kinetic_backend import Pose3, Values, LevenbergMarquardtOptimizer
 from py_kinetic_backend import BaseTtProjectionFactor, PriorFactorPose3
 
@@ -72,7 +73,7 @@ def solve_base_to_tt_graph_2(pts_all, hand_poses, track_tfs, tt_tfs, initials):
                 pt_3d,
                 pt_2d,
                 Pose3(initials["cam2ee"]),
-                Cal3DS2(initials["intrinsic"]),
+                Cal3Rational(initials["intrinsic"]),
                 proj_noise,
                 False,
                 False,
@@ -139,7 +140,7 @@ def solve_base_to_tt_graph(pts_all, hand_poses, track_tfs, tt_tfs, initials):
     values.insertPose3(track2tt_key, Pose3(initials["track2tt"]))
     values.insertPose3(base2track_key, Pose3(initials["base2track"]))
     values.insertPose3(cam2ee_key, Pose3(initials["cam2ee"]))
-    values.insertCal3DS2(intrinsic_key, Cal3DS2(initials["intrinsic"]))
+    values.insertCal3Rational(intrinsic_key, Cal3Rational(initials["intrinsic"]))
 
     graph = NonlinearFactorGraph()
     for idx, (pts, hand_pose, track_tf, tt_tf) in enumerate(zip(pts_all, hand_poses, track_tfs, tt_tfs)):
@@ -155,9 +156,9 @@ def solve_base_to_tt_graph(pts_all, hand_poses, track_tfs, tt_tfs, initials):
 
         # add projection factor
         for pt_idx, (pt_3d, pt_2d) in enumerate(zip(pts["3d"], pts["2d"])):
-            proj_factor = GeneralProjectionFactorCal3DS2(target2cam_keys[-1], intrinsic_key, \
-                                                         pt_3d, pt_2d, proj_noise, \
-                                                         False, True)
+            proj_factor = GeneralProjectionFactorCal3Rational(target2cam_keys[-1], intrinsic_key, \
+                                                              pt_3d, pt_2d, proj_noise, \
+                                                              False, True)
             graph.add(proj_factor)
             names.append(f"proj_{pt_idx}")
 
