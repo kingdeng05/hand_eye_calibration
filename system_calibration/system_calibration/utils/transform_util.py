@@ -1,6 +1,6 @@
 import numpy as np
 
-from py_kinetic_backend import Pose3, Rot3, PinholeCameraCal3DS2, Cal3DS2
+from py_kinetic_backend import Pose3, Rot3
 
 def euler_vec_to_mat(vec, use_deg=False):
     if use_deg:
@@ -15,5 +15,13 @@ def mat_to_euler_vec(mat, use_deg=True):
     rot_vec = rot_vec.tolist()
     trans_vec = pose.translation().tolist()
     return np.array(rot_vec + trans_vec) 
+
+def transform_3d_pts(pts, tf):
+    pts_tf = []
+    for pt in pts: 
+        pt_tf = Pose3(tf).transform_from(pt)
+        pts_tf.append(pt_tf)
+    return np.array(pts_tf).reshape(-1, 3)
+    
 
 
