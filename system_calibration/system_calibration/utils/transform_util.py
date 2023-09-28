@@ -16,12 +16,19 @@ def mat_to_euler_vec(mat, use_deg=True):
     trans_vec = pose.translation().tolist()
     return np.array(rot_vec + trans_vec) 
 
+def mat_to_quaternion(pose):
+    quat = Rot3(pose[:3, :3]).quaternion()  # qw, qx, qy, qz
+    return pose[:3, 3].tolist() + quat[[1, 2, 3, 0]].tolist()
+
 def transform_3d_pts(pts, tf):
     pts_tf = []
     for pt in pts: 
         pt_tf = Pose3(tf).transform_from(pt)
         pts_tf.append(pt_tf)
     return np.array(pts_tf).reshape(-1, 3)
+
+
+
     
 
 

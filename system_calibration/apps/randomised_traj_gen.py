@@ -21,7 +21,7 @@ RANGE = np.array([
 
 def tf_matrix_to_quaternion(pose):
     quat = Rot3(pose[:3, :3]).quaternion()  # qw, qx, qy, qz
-    return pose[:3, 3].tolist() +  quat[[1, 2, 3, 0]].tolist()
+    return pose[:3, 3].tolist() + quat[[1, 2, 3, 0]].tolist()
 
 def plot_frame(ax, transformation_matrix, name):
     origin = transformation_matrix[:3, 3]

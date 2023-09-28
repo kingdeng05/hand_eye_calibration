@@ -24,54 +24,37 @@ def get_img_size():
 def build_sim_sys():
     sim = SystemSimulator() 
     # add movable components
-    sim.add_component("tt", Turntable(), "tt", np.eye(4))
+    sim.add_component("tt", Turntable(), "tt", np.eye(4), False, False)
     tf_track2tt = euler_vec_to_mat([0, 0, -180, 3.71, 0, 0.38], use_deg=True)
-    sim.add_component("track", Track(), "tt", tf_track2tt)
+    sim.add_component("track", Track(), "tt", tf_track2tt, False, False)
     tf_robot2track = euler_vec_to_mat([0, 0, 0, 0, 0, 0], use_deg=True)
-    sim.add_component("robot", Robot(), "track", tf_robot2track)
+    sim.add_component("robot", Robot(), "track", tf_robot2track, False, True)
     # add perception components 
     camera = create_camera(np.eye(4), read_cam_intrinsic(), model="Cal3Rational") 
-    sim.add_component("camera", Camera(camera, get_img_size()), "robot", read_cam2ee_calib())
+    sim.add_component("camera", Camera(camera, get_img_size()), "robot", read_cam2ee_calib(), False, True)
     # add target components
-    tf_target2tt_0 = euler_vec_to_mat([-90, 0, 90, 1.8, 0, 0.525], use_deg=True)
-    sim.add_component("cube", ArucoCubeTarget(1.035), "tt", tf_target2tt_0)
+    tf_target2tt_0 = euler_vec_to_mat([-90, 0, 90, 1, 0, 0.525], use_deg=True)
+    sim.add_component("cube", ArucoCubeTarget(1.035, use_ids=(25, 50, 75, 100)), "tt", tf_target2tt_0, False, True)
     return sim
 
-def move(sim: SystemSimulator, name: str, val):
-    component = sim.get_component(name)
-    assert(isinstance(component, MovableComponent))
-    component.move(val) 
-
-def capture_camera(sim: SystemSimulator, name: str):
-    component = sim.get_component(name)
-    assert(isinstance(component, Camera))
-    # get all target components
-    targets = dict() 
-    for n, comp in sim.components.items():
-        if isinstance(comp, Target):
-            targets[n] = comp
-    pts_2d = []
-    pts_3d = []
-    for n, target in targets.items():
-        tf_cam2target = sim.get_transform(name, n)
-        ret = component.capture(tf_cam2target, target) 
-        pts_2d.append(ret[0])
-        pts_3d.append(ret[1])
-    return np.vstack(pts_2d), np.vstack(pts_3d) 
+def simulate_projection(pts_2d):
+    width, height = get_img_size()
+    img = np.zeros((height, width, 3))
+    img_vis = draw_pts_on_img(img, pts_2d)
+    img_vis = cv.resize(img_vis, (int(width/2), int(height/2)))
+    cv.imshow("vis", img_vis)
+    cv.waitKey(0)
+    
 
 def test_sim():
     sim = build_sim_sys()
-    move(sim, "robot", [0, 0, 0, 0, 0, 0.3])
-    move(sim, "track", 1)
-    for v in np.linspace(0, np.pi, 10):
-        move(sim, "tt", v)
-        pts_2d, _ = capture_camera(sim, "camera")
-        width, height = get_img_size()
-        img = np.zeros((height, width, 3))
-        img_vis = draw_pts_on_img(img, pts_2d)
-        img_vis = cv.resize(img_vis, (int(width/2), int(height/2)))
-        cv.imshow("vis", img_vis)
-        cv.waitKey(0)
+    sim.move("track", 0)
+    sim.move("robot", [0, 0, 0, 0, 0, 0.2])
+    for v in np.linspace(0, 2 * np.pi, 10):
+        sim.move("tt", v)
+        print("cube2track", sim.get_transform("cube", "track")[:3, 3])
+        pts_2d, _ = sim.capture_camera("camera")
+        simulate_projection(pts_2d)
 
     
 if __name__ == "__main__":
