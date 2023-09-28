@@ -8,7 +8,6 @@ class SystemSimulator(object):
     def __init__(self):
         self._components = dict() 
         self._calibration = defaultdict(dict) 
-        self._direct_transform = defaultdict(list)
         self._moving = defaultdict(dict) 
 
     @property
