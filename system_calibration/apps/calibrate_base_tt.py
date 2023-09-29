@@ -28,21 +28,6 @@ def print_reproj_stats(pts_2d, pts_proj):
 def print_vec(mat):
     print(mat_to_euler_vec(mat, use_deg=True))
 
-def sim_bag_read():
-    sim = build_sim_sys()
-    ee_pose_vec = [0, 0, 0, 0.6, 0, 0.8]
-    sim.move("robot", ee_pose_vec) 
-    for tr in [0.5, 1, 2]:
-        sim.move("track", tr)
-        for tt in np.linspace(0, 2 * np.pi, 7):
-            sim.move("tt", tt)
-            pts_2d, pts_3d = sim.capture("camera")
-            simulate_projection(pts_2d)
-            yield pts_3d, pts_2d, euler_vec_to_mat(ee_pose_vec), track_reading_to_transform(tr), tt_reading_to_transform(tt) 
-
-def read_bag():
-    pass
-
 def get_gt():
     sim = build_sim_sys()
     gt = dict()
@@ -52,6 +37,22 @@ def get_gt():
     gt["cam2ee"] = read_cam2ee_calib() 
     gt["target2tt_0"] = sim.calibration["cube"]["tt"] 
     return gt
+
+def sim_bag_read():
+    sim = build_sim_sys()
+    ee_pose_vec = [0, 0, 0, 0.6, 0, 0.8]
+    sim.move("robot", ee_pose_vec) 
+    for tr in [0.5, 1, 2]:
+        sim.move("track", tr)
+        for tt in np.linspace(0, 2 * np.pi, 7):
+            sim.move("tt", tt)
+            pts_2d, pts_3d = sim.capture("camera")
+            if VIS:
+                simulate_projection(pts_2d)
+            yield pts_3d, pts_2d, euler_vec_to_mat(ee_pose_vec), track_reading_to_transform(tr), tt_reading_to_transform(tt) 
+
+def read_bag():
+    pass
 
 def perturb_pose3(pose_mat, var, current=True):
     assert(len(var) == 6)
