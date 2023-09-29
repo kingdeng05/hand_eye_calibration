@@ -95,6 +95,16 @@ def append_dict_list(d, key, val):
         d[key] = [] 
     d[key].append(val)
 
+def get_data(bag_path):
+    # read data in either sim mode or actual bag
+    if bag_path is not None and os.path.exists(bag_path):
+        print(f"Loading bag from {bag_path}")
+        read = read_bag(bag_path)
+    else:
+        print(f"No bag path is given or {bag_path} doesn't exist, running simulation...")
+        read = sim_bag_read()
+    return read
+    
 def calibrate_base_to_tt(bag_path=None, perturb=False):
     hand_poses = []
     track_tfs = []
@@ -102,16 +112,7 @@ def calibrate_base_to_tt(bag_path=None, perturb=False):
     pts_all = []
     initials = get_gt()
 
-    # read data in either sim mode or actual bag
-    if bag_path is not None and os.path.exists(bag_path):
-        print(f"Loading bag from {bag_path}")
-        read = read_bag
-    else:
-        print(f"No bag path is given or {bag_path} doesn't exist, running simulation...")
-        read = sim_bag_read
-    it = read()
-
-    for _, (pts_3d, pts_2d, hand_pose, track_tf, tt_tf) in enumerate(it):
+    for _, (pts_3d, pts_2d, hand_pose, track_tf, tt_tf) in enumerate(get_data(bag_path)):
         track_tfs.append(track_tf)
         tt_tfs.append(tt_tf)
         hand_poses.append(hand_pose) 
@@ -141,11 +142,9 @@ def calibrate_base_to_tt(bag_path=None, perturb=False):
     print("diff of target to tt: ", mat_to_euler_vec(np.linalg.inv(initials["target2tt_0"]) @ tf_target2tt))
 
     # calculate reprojection error
-    # it = read(initials)
-    it = read()
     pts_2d_all = [] 
     pts_proj_all = []
-    for _, ((pts_3d, pts_2d, _, _, _), track_tf, tt_tf) in enumerate(zip(it, track_tfs, tt_tfs)):
+    for _, ((pts_3d, pts_2d, _, _, _), track_tf, tt_tf) in enumerate(zip(get_data(bag_path), track_tfs, tt_tfs)):
         tf_target2tt_i = tt_tf @ tf_target2tt
         tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_track2tt @ track_tf @ tf_base2track @ tf_ee2base @ initials["cam2ee"] 
         pts_proj = transfer_3d_pts_to_img(pts_3d, tf_cam2target, initials["intrinsic"])
