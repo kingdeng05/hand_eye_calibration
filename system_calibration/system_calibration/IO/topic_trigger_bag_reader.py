@@ -33,6 +33,7 @@ class TopicTriggerBagReader(BagReader):
 
                 if msgs and all(msgs):
                     yield msgs 
+                    msgs = self._get_default_msgs() 
 
     def _list_topics(self):
         with rosbag.Bag(self._name, 'r') as bag:
