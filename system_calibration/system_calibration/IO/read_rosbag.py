@@ -58,7 +58,7 @@ def calc_camera_diff(corners, ids, corners_prev, ids_prev):
     else:
         return diff / cnt 
 
-def plot_changes(bag_file_path):
+def plot_found_timestamps(bag_file_path):
     bag = rosbag.Bag(bag_file_path)
     corners_prev = None
     ids_prev = None
@@ -69,6 +69,8 @@ def plot_changes(bag_file_path):
     corners_diff = []
     pose_diff = []
     for topic, msg, _ in bag.read_messages():
+        if "header" not in dir(msg):
+            continue
         t = convert_to_unix_ns(msg.header.stamp)
         if topic == "/camera/image_color/compressed":
             corners, ids = detector.detect(msg_to_img(msg)) 
@@ -281,7 +283,8 @@ def read_handeye_bag(bag_file_path):
     bag.close()
 
 if __name__ == "__main__":
-    bag_file_path = '/home/fuhengdeng/fuheng.bag'
+    # bag_file_path = '/home/fuhengdeng/fuheng.bag'
+    bag_file_path = '/home/fuhengdeng/test_data/hand_eye.bag'
 
     # it = read_handeye_bag(bag_file_path)
 
@@ -292,5 +295,5 @@ if __name__ == "__main__":
 
     # analyze_time(bag_file_path)
     # dump_images(bag_file_path)
-    plot_changes(bag_file_path)
+    plot_found_timestamps(bag_file_path)
 

@@ -98,6 +98,7 @@ def calibrate_intrinsic(bag_path, saved_path=".calibration.yaml", debug=False):
         return np.array(yaml.safe_load(open(saved_path))["intrinsic_vec"])
 
     targets = {
+        25: ArucoBoardTarget(5, 5, 0.166, 0.033, 50),
         50: ArucoBoardTarget(5, 5, 0.166, 0.033, 50),
         100: ArucoBoardTarget(5, 5, 0.166, 0.033, 100)
     }
@@ -237,7 +238,10 @@ def calibrate_intrinsic_rational(bag_path):
 
 
 if __name__ == "__main__":
-    bag_name = "/home/fuhengdeng/fuheng.bag"
-    calibrate_intrinsic(bag_name, debug=False)
+    bag_name = "/home/fuhengdeng/test_data/hand_eye.bag"
+    # calibrate_intrinsic(bag_name, debug=False)
     # calibrate_intrinsic_rational(bag_name)
+    
+    from system_calibration.IO import plot_found_timestamps
+    plot_found_timestamps(bag_name)
 
