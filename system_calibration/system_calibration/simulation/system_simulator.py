@@ -1,18 +1,32 @@
 import numpy as np
 from collections import defaultdict
 
-from .components import MovableComponent, Camera, Target
-from ..utils import mat_to_euler_vec
+from .components import MovableComponent, PerceptionComponent, Camera, Target
 
 class SystemSimulator(object):
     def __init__(self):
         self._components = dict() 
         self._calibration = defaultdict(dict) 
+        self._direct_transform = defaultdict(list)
         self._moving = defaultdict(dict) 
 
     @property
     def components(self):
         return self._components
+
+    @property
+    def calibration(self):
+        return self._calibration
+
+    """
+    Call the object with component name
+    Params:
+        name, str
+    Returns:
+        object
+    """
+    def __call__(self, name):
+        return self._components[name] 
 
     """
     Get component by name
@@ -89,26 +103,36 @@ class SystemSimulator(object):
         component.move(val) 
 
     """
-    Capture in camera
+    Capture targets by perception components 
     Params:
         name, str, the component name
+        target, optional, if empty(default) will capture all the targets in the system,
+                otherwise specify any target name specifically
     Returns:
-        pts_2d, pts_3d
+        Perception result 
     """
-    def capture_camera(self, name: str):
-        component = self.get_component(name)
-        assert(isinstance(component, Camera))
+    def capture(self, name: str, targets=[]):
+        component = self._components[name]
+        assert(isinstance(component, PerceptionComponent))
         # get all target components
-        targets = dict() 
-        for n, comp in self.components.items():
-            if isinstance(comp, Target):
-                targets[n] = comp
-        pts_2d = []
-        pts_3d = []
-        for n, target in targets.items():
-            tf_cam2target = self.get_transform(name, n)
-            ret = component.capture(tf_cam2target, target) 
-            pts_2d.append(ret[0])
-            pts_3d.append(ret[1])
-        return np.vstack(pts_2d), np.vstack(pts_3d) 
+        if isinstance(component, Camera):
+            pts_2d, pts_3d = [], []
+            if len(targets) == 0:
+                targets = dict() 
+                for n, comp in self._components.items():
+                    if isinstance(comp, Target):
+                        targets[n] = comp
+                for n, target in targets.items():
+                    tf_cam2target = self.get_transform(name, n)
+                    ret = component.capture(tf_cam2target, target) 
+                    pts_2d.append(ret[0])
+                    pts_3d.append(ret[1])
+                    return np.vstack(pts_2d), np.vstack(pts_3d) 
+            else:
+                for t_n in targets:
+                    assert(t_n in self._components)
+                    tf_cam2target = self.get_transform(name, t_n)
+                    return component.capture(tf_cam2target, self._components[t_n])
+        else:
+            raise NotImplementedError()
 

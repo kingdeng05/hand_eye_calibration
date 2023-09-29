@@ -28,7 +28,8 @@ class Camera(PerceptionComponent):
                 pts_target = target.get_pts_3d_by_id(id)
                 tf_base2face = euler_vec_to_mat(target.frames[id], use_deg=False) # remember this is from target base to target face
                 pts_target = transform_3d_pts(pts_target, tf_base2face)
-                pts_2d, pts_3d = self.get_visible_pts(pts_target, tf_base2face @ cam_pose)
+                pts_2d, pts_3d = self._get_visible_pts(pts_target, tf_base2face @ cam_pose)
+                pts_3d = transform_3d_pts(pts_3d, np.linalg.inv(tf_base2face))
                 pts_2d_all.append(pts_2d)
                 pts_3d_all.append(pts_3d)
             pts_2d_all = np.vstack(pts_2d_all)
@@ -36,7 +37,7 @@ class Camera(PerceptionComponent):
             return pts_2d_all, pts_3d_all 
         elif isinstance(target, ArucoBoardTarget) or isinstance(target, CheckerboardTarget):
             pts_target = target.get_pts()
-            return self.get_visible_pts(pts_target, cam_pose)
+            return self._get_visible_pts(pts_target, cam_pose)
         elif isinstance(target, np.ndarray):
             # dummy projection 
             pts_cam = transform_3d_pts(target, np.linalg.inv(cam_pose))
@@ -44,16 +45,18 @@ class Camera(PerceptionComponent):
         else:
             raise NotImplementedError(f"TargetType {type(target)} is not supported yet!")
 
-    def get_visible_pts(self, pts_target, cam_pose):
+    def _get_visible_pts(self, pts_target, cam_pose):
         pts_cam = transform_3d_pts(pts_target, np.linalg.inv(cam_pose))
         view_dir = pts_cam.mean(axis=0) 
         # calculate the z axis of the face
         face_vec_cam = (np.linalg.inv(cam_pose)[:3, :3].dot(np.array([0, 0, 1]).reshape(-1, 1))).flatten()
-        if not self.is_face_visible(face_vec_cam, view_dir):
+        if not self._is_face_visible(face_vec_cam, view_dir):
             pts_cam = [] # clear the points
-        return self.pts_in_image(pts_cam) 
+        pts_img_valid, pts_cam_valid = self._pts_in_image(pts_cam) 
+        pts_target_valid = transform_3d_pts(pts_cam_valid, cam_pose)
+        return pts_img_valid, pts_target_valid
 
-    def pts_in_image(self, pts_cam):
+    def _pts_in_image(self, pts_cam):
         pts_2d = []
         pts_3d = []
         for pt_target in pts_cam:
@@ -65,7 +68,7 @@ class Camera(PerceptionComponent):
         return np.array(pts_2d).reshape(-1, 2), np.array(pts_3d).reshape(-1, 3)
          
     @staticmethod
-    def is_face_visible(normal, view_direction):
+    def _is_face_visible(normal, view_direction):
         # Normalize the normal and the view direction
         normal = normal / np.linalg.norm(normal)
         view_direction = view_direction / np.linalg.norm(view_direction)

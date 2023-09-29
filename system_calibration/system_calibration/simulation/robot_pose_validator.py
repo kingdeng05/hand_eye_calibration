@@ -18,7 +18,7 @@ class MoveGroup(object):
         super(MoveGroup, self).__init__()
         group_name = "planning"
         move_group = moveit_commander.MoveGroupCommander(group_name)
-        user_end_effector_link = 'link_6'
+        user_end_effector_link = 'link_kinetic'
         user_base_link = 'base_link'
         move_group.set_end_effector_link(user_end_effector_link)
         move_group.set_pose_reference_frame(user_base_link)

@@ -34,7 +34,8 @@ def build_sim_sys():
     sim.add_component("camera", Camera(camera, get_img_size()), "robot", read_cam2ee_calib(), False, True)
     # add target components
     tf_target2tt_0 = euler_vec_to_mat([-90, 0, 90, 1, 0, 0.525], use_deg=True)
-    sim.add_component("cube", ArucoCubeTarget(1.035, use_ids=(25, 50, 75, 100)), "tt", tf_target2tt_0, False, True)
+    # sim.add_component("cube", ArucoCubeTarget(1.035, use_ids=(25, 50, 75, 100)), "tt", tf_target2tt_0, False, True)
+    sim.add_component("cube", ArucoCubeTarget(1.035), "tt", tf_target2tt_0, False, True)
     return sim
 
 def simulate_projection(pts_2d):
@@ -53,7 +54,7 @@ def test_sim():
     for v in np.linspace(0, 2 * np.pi, 10):
         sim.move("tt", v)
         print("cube2track", sim.get_transform("cube", "track")[:3, 3])
-        pts_2d, _ = sim.capture_camera("camera")
+        pts_2d, _ = sim.capture("camera") # project all the targets
         simulate_projection(pts_2d)
 
     
