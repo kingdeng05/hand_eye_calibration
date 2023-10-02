@@ -16,6 +16,8 @@ from system_calibration.simulation import ArucoCubeTarget, ArucoBoardTarget
 from system_calibration.frontend import ArucoDetector
 from system_calibration.utils import calculate_reproj_error 
 from calibrate_intrinsic import calibrate_intrinsic, reprojection_plot
+from build_sim_sys import build_sim_sys, read_cam2ee_calib, read_cam_intrinsic
+from read_bags import read_hand_eye_bag_adhoc
 
 random.seed(5)
 np.set_printoptions(precision=3, suppress=True)
@@ -153,7 +155,6 @@ def calibrate_hand_eye_dhe(bag_path):
     hand_poses = []
     eye_poses = []
     K, D = Cal3DS2_to_KD(intrinsic)
-    print(K, D)
     for img, pose_msg, _, _, _ in read_handeye_bag(bag_path):
         corners, ids = detector.detect(img)
         if len(ids) == 0:
@@ -197,17 +198,21 @@ def calibrate_hand_eye_rm2(bag_path, debug=False, file_path='.cam2ee.yaml'):
         with open(file_path) as f:
             cam2ee = np.array(yaml.safe_load(f)["transformation"]) 
             return cam2ee
-    calib_init = create_calib_gt()
-    t2w_init = create_cube_t2w_gt()
-    intrinsic = calibrate_intrinsic(bag_path)
+    sim = build_sim_sys()
+    calib_init = read_cam2ee_calib()
+    t2w_init = sim.get_transform("cube", "robot") 
+    intrinsic = read_cam_intrinsic()
 
-    target = ArucoCubeTarget(1.035, use_ids=(50,))
+    # target = ArucoCubeTarget(1.035, use_ids=(50, 100,))
+    target = ArucoCubeTarget(1.035, use_ids=(75,))
     detector = ArucoDetector(vis=False)
     pts_all = []
     hand_poses = []
     eye_poses = []
     K, D = Cal3Rational_to_KD(intrinsic)
-    for img, pose_msg, _, _, _ in read_handeye_bag(bag_path):
+    # for img, pose_msg, _, _, _ in read_handeye_bag(bag_path):
+    yaml_file = "/home/fuhengdeng/data_collection_yaml/09_25/hand_eye.yaml"
+    for idx, (img, hand_pose) in enumerate(read_hand_eye_bag_adhoc(bag_path, yaml_file)):
         pts = defaultdict(list) 
         corners, ids = detector.detect(img)
         if len(ids) == 0:
@@ -217,11 +222,16 @@ def calibrate_hand_eye_rm2(bag_path, debug=False, file_path='.cam2ee.yaml'):
             pts_target = target.find_3d_pts_by_id(id)
             if pts_target is None:
                 continue
-            for pt_2d, pt_3d in zip(corner, pts_target):
+            for pt_idx, (pt_2d, pt_3d) in enumerate(zip(corner, pts_target)):
+                if pt_idx not in (0, 1):
+                    continue 
                 pts["2d"].append(pt_2d) 
                 pts["3d"].append(pt_3d)
                 pts_3d.append(pt_3d) 
-                pts_2d.append(pt_2d)
+                pts_2d.append(pt_2d) 
+
+        if len(pts_3d) == 0:
+            continue
         
         # collect all the observations
         pts_all.append(pts)
@@ -235,7 +245,7 @@ def calibrate_hand_eye_rm2(bag_path, debug=False, file_path='.cam2ee.yaml'):
         eye_poses.append(eye_pose)
 
         # append hand poses
-        hand_poses.append(pose_msg_to_tf(pose_msg))
+        hand_poses.append(hand_pose)
 
     # solve for parameters
     calib_ret, t2w_ret, intrinsic_ret, cam_poses_ret = calib_rm2_factor_graph(calib_init, t2w_init, intrinsic, eye_poses, hand_poses, pts_all)
@@ -253,7 +263,7 @@ def calibrate_hand_eye_rm2(bag_path, debug=False, file_path='.cam2ee.yaml'):
     # visual evaluation 
     pts_all_2d = []
     pts_all_proj = []
-    for idx, (img, pose_msg, _, _, _) in enumerate(read_handeye_bag(bag_path)):
+    for idx, (img, hand_pose) in enumerate(read_hand_eye_bag_adhoc(bag_path, yaml_file)):
         pts = defaultdict(list) 
         corners, ids = detector.detect(img)
         if len(ids) == 0:
@@ -265,7 +275,9 @@ def calibrate_hand_eye_rm2(bag_path, debug=False, file_path='.cam2ee.yaml'):
             for pt_2d, pt_3d in zip(corner, pts_3d):
                 pts["2d"].append(pt_2d) 
                 pts["3d"].append(pt_3d)
-        hand_poses.append(pose_msg_to_tf(pose_msg))
+        if len(pts) == 0:
+            continue 
+        hand_poses.append(hand_pose)
         pts_all.append(pts)
         # projection 
         c2t = np.linalg.inv(cam_poses_ret[idx]) 
@@ -284,15 +296,26 @@ def calibrate_hand_eye_rm2(bag_path, debug=False, file_path='.cam2ee.yaml'):
         if debug:
             pts_proj = np.array(pts_proj)
             if len(pts_proj):
-                error_cur = calculate_reproj_error(pts_proj, pts["2d"])
+                error = np.linalg.norm(pts_proj - pts['2d'], axis=1)
                 cv.putText(
                     img_copy, 
-                    f"reproj_error: {error_cur}",
+                    f"idx: {idx}, avg_error: {error.mean():.2f}, max_error: {error.max():.2f}",
                     (200, 200),
                     cv.FONT_HERSHEY_SIMPLEX,
                     1,
                     (0, 255, 0)
                 )
+                perc_95 = np.percentile(error, 95)
+                for pt_err, pt_2d in zip(error, np.array(pts["2d"]).astype(int)):
+                    if pt_err > perc_95:
+                        cv.putText(
+                            img_copy, 
+                            f"{pt_err:.2f}",
+                            (pt_2d[0] + 20, pt_2d[1] + 20),
+                            cv.FONT_HERSHEY_SIMPLEX,
+                            1,
+                            (0, 255, 0)
+                        )
             img_copy = cv.resize(img_copy, (int(img_copy.shape[1]/2), int(img_copy.shape[0]/2)))
             cv.imshow("proj", img_copy)
             cv.waitKey(0)
@@ -315,7 +338,8 @@ def calibrate_hand_eye_rm2(bag_path, debug=False, file_path='.cam2ee.yaml'):
 
 if __name__ == "__main__":
     # bag_name = "/home/fuhengdeng/hand_eye.bag"
-    bag_name = "/home/fuhengdeng/fuheng.bag"
+    # bag_name = "/home/fuhengdeng/fuheng.bag"
     # calibrate_hand_eye_dhe(bag_name)
     # calibrate_hand_eye_rm(bag_name)
-    calibrate_hand_eye_rm2(bag_name, vis=False)
+    bag_name = "/home/fuhengdeng/test_data/hand_eye.bag"
+    calibrate_hand_eye_rm2(bag_name, debug=False)

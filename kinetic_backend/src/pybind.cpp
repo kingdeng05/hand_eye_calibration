@@ -131,8 +131,20 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
 
     // noise models
     py::class_<noiseModel::Base, boost::shared_ptr<noiseModel::Base>>(m, "Base");
+    py::class_<noiseModel::mEstimator::Base, boost::shared_ptr<noiseModel::mEstimator::Base>>(m, "mEstimatorBase");
     py::class_<noiseModel::Diagonal, boost::shared_ptr<noiseModel::Diagonal>, noiseModel::Base>(m, "Diagonal")
         .def_static("sigmas", &noiseModel::Diagonal::Sigmas, py::arg(), py::arg()=true)
+        ;
+    py::class_<noiseModel::Robust, std::shared_ptr<noiseModel::Robust>, noiseModel::Base>(m, "RobustNoiseModel")
+        .def_static("create", &noiseModel::Robust::Create, py::arg("robust"), py::arg("noise"))
+        ;
+    py::enum_<noiseModel::mEstimator::Base::ReweightScheme>(m, "ReweightScheme")
+        .value("Scalar", noiseModel::mEstimator::Base::ReweightScheme::Scalar)
+        .value("Block", noiseModel::mEstimator::Base::ReweightScheme::Block)
+        .export_values()
+        ;
+    py::class_<noiseModel::mEstimator::Cauchy, noiseModel::mEstimator::Base, std::shared_ptr<noiseModel::mEstimator::Cauchy>>(m, "CauchyNoiseModel")
+        .def_static("create", &noiseModel::mEstimator::Cauchy::Create, py::arg("scale"), py::arg("Reweight")=noiseModel::mEstimator::Base::ReweightScheme::Block)
         ;
 
     // non linear factor

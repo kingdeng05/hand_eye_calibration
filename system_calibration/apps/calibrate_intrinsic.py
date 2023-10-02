@@ -14,6 +14,7 @@ from system_calibration.utils import calculate_reproj_error
 from system_calibration.IO import read_handeye_bag
 from system_calibration.backend import solve_intrinsic_rational, IntrinsicCailbrator
 
+from read_bags import read_intrinsic_bag
 
 np.set_printoptions(precision=3, suppress=True)
 
@@ -75,7 +76,7 @@ def reprojection_plot(pts_2d, pts_proj):
     error = calculate_reproj_error(pts_2d, pts_proj)
     std = np.linalg.norm(pts_2d - pts_proj, axis=1).std()
     error_vec = np.linalg.norm(pts_2d - pts_proj, axis=1)
-    print(f"50%: {np.percentile(error_vec, 50)}, 90%: {np.percentile(error_vec, 90)} 95%: {np.percentile(error_vec, 95)}")
+    print(f"50%: {np.percentile(error_vec, 50)}, 90%: {np.percentile(error_vec, 90)} 95%: {np.percentile(error_vec, 95)} max: {np.max(error_vec)}")
     axes.set_title(f"error: {error}, std: {std}")
     plt.show()
 
@@ -98,13 +99,16 @@ def calibrate_intrinsic(bag_path, saved_path=".calibration.yaml", debug=False):
         return np.array(yaml.safe_load(open(saved_path))["intrinsic_vec"])
 
     targets = {
-        25: ArucoBoardTarget(5, 5, 0.166, 0.033, 50),
+        0: ArucoBoardTarget(5, 5, 0.166, 0.033, 0),
+        25: ArucoBoardTarget(5, 5, 0.166, 0.033, 25),
         50: ArucoBoardTarget(5, 5, 0.166, 0.033, 50),
+        75: ArucoBoardTarget(5, 5, 0.166, 0.033, 75),
         100: ArucoBoardTarget(5, 5, 0.166, 0.033, 100)
     }
     detector = ArucoDetector(vis=False)
     pts_3d_all, pts_2d_all = [], []
-    for idx, (img, _, _, _, _) in enumerate(read_handeye_bag(bag_path)):
+    views_cnt = defaultdict(int) 
+    for idx, img in enumerate(read_intrinsic_bag(bag_path)):
         # 3d pts (n, 3), 2d pts (n, 1, 2)
         corners, ids = detector.detect(img)
         pts_3d = defaultdict(list) 
@@ -113,8 +117,8 @@ def calibrate_intrinsic(bag_path, saved_path=".calibration.yaml", debug=False):
             for corner, id in zip(corners, ids):
                 ret = target.find_3d_pts_by_id(id)
                 if ret is not None: 
-                    pts_3d[target_id].append(ret) 
-                    pts_2d[target_id].append(corner)
+                    pts_3d[target_id].append([ret[0]]) 
+                    pts_2d[target_id].append([corner[0]])
         for key, pts_3d_target in pts_3d.items():
             if len(pts_3d_target) >= 3:
                 pts_3d_target = np.vstack(pts_3d_target, dtype=np.float32)
@@ -122,10 +126,14 @@ def calibrate_intrinsic(bag_path, saved_path=".calibration.yaml", debug=False):
                 pts_2d_target = pts_2d_target.reshape(len(pts_2d_target), 1, 2)
                 pts_3d_all.append(pts_3d_target)
                 pts_2d_all.append(pts_2d_target)
+                views_cnt[key] += 1
 
-            # cv.imwrite(f"img{idx}.png", img)
+        # cv.imwrite(f"img{idx}.png", img)
 
     print(f"Using {len(pts_3d_all)} for intrinsic calibration")
+    print("views distribution:\n")
+    for idx, cnt in views_cnt.items():
+        print(f"    target {idx}: {cnt}")
 
     # note that for filtering to work, it has to at least run 2 iterations 
     K, d, rvecs, tvecs, pts_3d_ft, pts_2d_ft = IntrinsicCailbrator(iteration=5, outlier_perc=99, flags=cv.CALIB_RATIONAL_MODEL).calibrate(pts_3d_all, pts_2d_all, img.shape[:2][::-1])
@@ -239,9 +247,7 @@ def calibrate_intrinsic_rational(bag_path):
 
 if __name__ == "__main__":
     bag_name = "/home/fuhengdeng/test_data/hand_eye.bag"
-    # calibrate_intrinsic(bag_name, debug=False)
+    # bag_name = "/home/fuhengdeng/fuheng.bag"
+    calibrate_intrinsic(bag_name, debug=False)
     # calibrate_intrinsic_rational(bag_name)
     
-    from system_calibration.IO import plot_found_timestamps
-    plot_found_timestamps(bag_name)
-

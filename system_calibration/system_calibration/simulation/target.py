@@ -86,7 +86,7 @@ class ArucoCubeTarget(CalibTarget3D):
         } 
         # rx, ry, rz, x, y, z (in euler angles), from base to side of target
         frames = {
-            0: np.array([np.pi/2, 0, -np.pi*3/4, 0, 0, size/2]), # A 
+            0: np.array([np.pi/2, 0, np.pi*3/4, 0, 0, size/2]), # A 
             25: np.array([0, np.pi*3/4, 0, 0, 0, size/2]), # B 
             50: np.array([0, -np.pi/4, 0, 0, 0, size/2]), # C 
             75: np.array([0, -np.pi*3/4, 0, 0, 0, size/2]), # D 

@@ -13,6 +13,7 @@ np.set_printoptions(3, suppress=True)
 def read_cam2ee_calib():
     with open(".cam2ee.yaml") as f:
         return np.array(yaml.safe_load(f)["transformation"])
+    # return euler_vec_to_mat([-np.pi/2, 0, -np.pi/2, 0.2, 0, 0])
 
 def read_cam_intrinsic():
     with open(".calibration.yaml") as f:

@@ -4,6 +4,7 @@ from py_kinetic_backend import Diagonal, NonlinearFactorGraph, symbol, Cal3DS2, 
 from py_kinetic_backend import Pose3, Values, LevenbergMarquardtOptimizer
 from py_kinetic_backend import RMFactorCal3DS2, PriorFactorPose3, PriorFactorCal3DS2
 from py_kinetic_backend import HEPoseConstraintFactor, GeneralProjectionFactorCal3DS2, GeneralProjectionFactorCal3Rational 
+from py_kinetic_backend import CauchyNoiseModel, RobustNoiseModel 
 
 def calib_rm_factor_graph(calib_init, t2w_init, k_init, hand_poses, pts):
     graph = NonlinearFactorGraph()
@@ -64,7 +65,11 @@ def calib_rm_factor_graph(calib_init, t2w_init, k_init, hand_poses, pts):
 def calib_rm2_factor_graph(calib_init, t2w_init, k_init, cam_poses, hand_poses, pts):
     graph = NonlinearFactorGraph()
     # noise model in pixel
-    rm_noise_model = Diagonal.sigmas([2, 2]) 
+    rm_noise_model = Diagonal.sigmas([1., 1.])
+    # rm_noise_model = RobustNoiseModel.create(
+    #     CauchyNoiseModel.create(3.),
+    #     Diagonal.sigmas([1., 1.])
+    # ) 
 
     # set up symbols 
     calib_key = symbol("x", 0)

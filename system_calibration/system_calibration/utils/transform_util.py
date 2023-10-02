@@ -20,6 +20,13 @@ def mat_to_quaternion(pose):
     quat = Rot3(pose[:3, :3]).quaternion()  # qw, qx, qy, qz
     return pose[:3, 3].tolist() + quat[[1, 2, 3, 0]].tolist()
 
+def quaternion_to_mat(quat_vec):
+    # quat_vec [x, y, z, qx, qy, qz, qw]
+    quat = quat_vec[3:]
+    quat = np.array(quat)[[3, 0, 1, 2]]
+    pose = Pose3(Rot3(*quat), quat_vec[:3]).matrix()
+    return pose 
+
 def transform_3d_pts(pts, tf):
     pts_tf = []
     for pt in pts: 

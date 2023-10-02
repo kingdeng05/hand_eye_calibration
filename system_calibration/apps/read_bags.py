@@ -1,18 +1,74 @@
-from system_calibration.IO import TopicTriggerBagReader
+import yaml
+import cv2 as cv
+from matplotlib import pyplot as plt
 
+from system_calibration.IO import TopicTriggerBagReader
+from system_calibration.frontend import ArucoDetector 
+from system_calibration.utils import msg_to_img, pose_msg_to_tf, quaternion_to_mat
+
+
+
+def read_intrinsic_bag(bag_name):
+    topics = [
+        "/robot_0/robot_base/end_effector_pose_stopped",
+        "/camera/image_color/compressed",
+    ]
+    reader = TopicTriggerBagReader(bag_name, *topics)
+    for msgs in reader.read():
+        img = msg_to_img(msgs[1][1])
+        yield img
 
 def read_hand_eye_bag(bag_name):
     topics = [
         "/robot_0/robot_base/end_effector_pose_stopped",
         "/camera/image_color/compressed",
-        "/robot_0/robot_base/end_effector_pose"
+        "/robot_0/robot_base/end_effector_pose",
     ]
     reader = TopicTriggerBagReader(bag_name, *topics)
     for msgs in reader.read():
-        print(f"ts_diff: {abs(msgs[0][0] - msgs[1][0])/1e6} {abs(msgs[0][0] - msgs[2][0]) / 1e6}")
+        yield msg_to_img(msgs[1][1]), pose_msg_to_tf(msgs[2][1]) 
 
-        
+def read_hand_eye_bag_adhoc(bag_name, pose_yaml):
+    topics = [
+        "/robot_0/robot_base/end_effector_pose_stopped",
+        "/camera/image_color/compressed",
+    ]
+    pose_cfg = yaml.safe_load(open(pose_yaml))
+    quats = [pose_cfg[i]["robot_planning_pose"][:7] for i in range(len(pose_cfg))]
+    poses = [quaternion_to_mat(quat) for quat in quats] 
+    reader = TopicTriggerBagReader(bag_name, *topics)
+    for idx, (msgs, pose) in enumerate(zip(reader.read(), poses)):
+        # if idx < 1 or idx >= 20 or idx in (7, 13):
+        #     continue 
+        # if idx < 61 or idx >= 80:
+        #     continue
+        if idx < 41 or idx >= 60:
+            continue 
+        # if idx < 21 or idx >= 40:
+        #     continue 
+        # if idx < 81 or idx >= 100:
+        #     continue 
+        # if idx < 101 or idx >= 120:
+        #     continue 
+        yield msg_to_img(msgs[1][1]), pose
+
+def check_blurriness(image):
+    """Compute the variance of Laplacian of the image."""
+    gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+    return cv.Laplacian(gray, cv.CV_64F).var()
+
+def plot_blurriness(bag_name):
+    topics = ["/camera/image_color/compressed"]
+    reader = TopicTriggerBagReader(bag_name, *topics)
+    vals = []
+    for msgs in reader.read():
+        vals.append(check_blurriness(msg_to_img(msgs[0][1])))
+    plt.plot(vals)
+    plt.show()
+
+     
 if __name__ == "__main__":
     # bag_path = "/home/fuhengdeng/test_data/hand_eye.bag"
     bag_path = "/home/fuhengdeng/fuheng.bag"
-    read_hand_eye_bag(bag_path)
+    # read_hand_eye_bag(bag_path)
+    read_intrinsic_bag(bag_path)
