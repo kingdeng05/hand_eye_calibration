@@ -26,9 +26,9 @@ def build_sim_sys():
     sim = SystemSimulator() 
     # add movable components
     sim.add_component("tt", Turntable(), "tt", np.eye(4), False, False)
-    tf_track2tt = euler_vec_to_mat([0, 0, -180, 3.71, 0, 0.38], use_deg=True)
+    tf_track2tt = euler_vec_to_mat([0, 0, -180, 3.71, -0.01, 0.38], use_deg=True)
     sim.add_component("track", Track(), "tt", tf_track2tt, False, False)
-    tf_robot2track = euler_vec_to_mat([0, 0, 0, 0, 0, 0], use_deg=True)
+    tf_robot2track = euler_vec_to_mat([-0.1, 0.6, 0, 0, 0, 0], use_deg=True)
     sim.add_component("robot", Robot(), "track", tf_robot2track, False, True)
     # add perception components 
     camera = create_camera(np.eye(4), read_cam_intrinsic(), model="Cal3Rational") 

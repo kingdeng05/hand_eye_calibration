@@ -1,4 +1,5 @@
 import os
+import yaml
 import numpy as np
 import cv2 as cv
 from copy import deepcopy 
@@ -144,7 +145,7 @@ def calibrate_base_to_tt(bag_path=None, perturb=False, debug=False):
         tt_tfs = [perturb_pose3(tt_tf, [0, 0, 2e-3, 0, 0, 0]) for tt_tf in tt_tfs]
         hand_poses = [perturb_pose3(hand_pose, [1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]) for hand_pose in hand_poses]
         pts_all = [{"2d": perturb_pts(pts["2d"], [1, 1]), "3d": pts["3d"]} for pts in pts_all] 
-        pert["target2tt"] = perturb_pose3(pert["track2tt"], [1e-2, 1e-5, 1e-5, 1e-4, 1e-1, 1e-1])
+        pert["target2tt"] = perturb_pose3(pert["track2tt"], [1e-2, 1e-5, 1e-5, 1e-1, 1e-4, 1e-1])
     else:
         pert = initials
 
@@ -157,26 +158,32 @@ def calibrate_base_to_tt(bag_path=None, perturb=False, debug=False):
     print("diff of base to tt: ", mat_to_euler_vec(np.linalg.inv(tf_base2tt_init) @ tf_base2tt))
     print("diff of ee to base: ", mat_to_euler_vec(np.linalg.inv(hand_poses[0]) @ tf_ee2base))
     print("diff of target to tt: ", mat_to_euler_vec(np.linalg.inv(initials["target2tt_0"]) @ tf_target2tt))
+    print("track2tt: ", mat_to_euler_vec(tf_track2tt))
+    print("base2track: ", mat_to_euler_vec(tf_base2track))
+    print("base2tt: ", mat_to_euler_vec(tf_base2tt))
 
     # calculate reprojection error
     pts_2d_all = [] 
     pts_proj_all = []
-    for _, ((img, pts_3d, pts_2d, _, track_tf_meas, tt_tf_meas), track_tf, tt_tf) in enumerate(zip(get_data(bag_path), track_tfs, tt_tfs)):
+    for _, ((img, pts_3d, pts_2d, ee2base_meas, track_tf_meas, tt_tf_meas), track_tf, tt_tf) in enumerate(zip(get_data(bag_path), track_tfs, tt_tfs)):
         tf_target2tt_i = tt_tf @ tf_target2tt
         tf_cam2tt = tf_track2tt @ track_tf @ tf_base2track @ tf_ee2base @ initials["cam2ee"]
         tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt 
         pts_proj = transfer_3d_pts_to_img(pts_3d, tf_cam2target, initials["intrinsic"])
         if debug:
             img_vis = visualize_reprojection(img, pts_2d, pts_proj) 
-            img_vis = turntable_projection(img_vis, tf_cam2tt, initials["intrinsic"])
+            img_vis = turntable_projection(img_vis, tf_cam2tt, initials["intrinsic"], color=(0, 255, 0))
+            tf_cam2tt_init = initials["track2tt"] @ track_tf @ initials["base2track"] @ tf_ee2base @ initials["cam2ee"] 
+            # tf_cam2tt_init = initials["track2tt"] @ track_tf_meas @ initials["base2track"] @ ee2base_meas @ initials["cam2ee"] 
+            img_vis = turntable_projection(img_vis, tf_cam2tt_init, initials["intrinsic"], color=(0, 0, 255), show_axes=False)
             img_vis = cv.resize(img_vis, (int(img_vis.shape[1]/2), int(img_vis.shape[0]/2)))
             cv.putText(
                 img_vis, 
-                f"track_diff: {tf_mat_diff(track_tf_meas, track_tf)}\ntt_diff: {tf_mat_diff(tt_tf_meas, tt_tf)}",
+                f"track_diff: {tf_mat_diff(track_tf_meas, track_tf)} tt_diff: {tf_mat_diff(tt_tf_meas, tt_tf)}",
                 (50, 50),
                 cv.FONT_HERSHEY_SIMPLEX,
                 0.5,
-                (255, 0 , 0)
+                (0, 255, 0)
             )
             cv.imshow("vis", img_vis)
             cv.waitKey(0)
@@ -184,7 +191,18 @@ def calibrate_base_to_tt(bag_path=None, perturb=False, debug=False):
         pts_proj_all.append(pts_proj)
     print_reproj_stats(pts_2d_all, pts_proj_all)
 
-def turntable_projection(img, tf_cam2tt, intrinsic, tt_radius=2.75):
+    # dump result
+    if not debug:
+        with open(".base2track.yaml", "w+") as f:
+            yaml.safe_dump({
+                "transformation": tf_base2track.tolist()
+            }, f, default_flow_style=False)
+        with open(".track2tt.yaml", "w+") as f:
+            yaml.safe_dump({
+                "transformation": tf_track2tt.tolist()
+            }, f, default_flow_style=False)
+
+def turntable_projection(img, tf_cam2tt, intrinsic, color=(0, 255, 0), tt_radius=2.75, show_axes=True):
     # make virtual edge points of turntable
     pts_tt = []
     for angle in np.linspace(0, 2 * np.pi, 100):
@@ -198,25 +216,26 @@ def turntable_projection(img, tf_cam2tt, intrinsic, tt_radius=2.75):
     # draw arrows
     pts_axis = np.eye(3) 
     pts_axis_proj = transfer_3d_pts_to_img(pts_axis, tf_cam2tt, intrinsic)
-    img = draw_pts_on_img(img, pts_proj, s=3)
-    axis_color = [
-        (0, 0, 255),
-        (0, 255, 0),
-        (255, 0, 0)
-    ]
-    axis_names = ["x", "y", "z"]
-    for a_c, a_n, pt in zip(axis_color, axis_names, pts_axis_proj.astype(int)):
-        cv.arrowedLine(img, tuple(pts_proj[-1].astype(int)), tuple(pt), a_c, 2, cv.LINE_AA, 0, 0.2)
-        text_loc = pt.copy() 
-        text_loc[0] += 20
-        cv.putText(
-            img, 
-            a_n,
-            tuple(text_loc.astype(int)),
-            cv.FONT_HERSHEY_SIMPLEX,
-            1.2,
-            a_c 
-        )
+    img = draw_pts_on_img(img, pts_proj, s=3, c=color)
+    if show_axes:
+        axis_color = [
+            (0, 0, 255),
+            (0, 255, 0),
+            (255, 0, 0)
+        ]
+        axis_names = ["x", "y", "z"]
+        for a_c, a_n, pt in zip(axis_color, axis_names, pts_axis_proj.astype(int)):
+            cv.arrowedLine(img, tuple(pts_proj[-1].astype(int)), tuple(pt), a_c, 2, cv.LINE_AA, 0, 0.2)
+            text_loc = pt.copy() 
+            text_loc[0] += 20
+            cv.putText(
+                img, 
+                a_n,
+                tuple(text_loc.astype(int)),
+                cv.FONT_HERSHEY_SIMPLEX,
+                1.2,
+                a_c 
+            )
     return img 
 
 
