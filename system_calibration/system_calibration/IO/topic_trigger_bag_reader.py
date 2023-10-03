@@ -20,18 +20,15 @@ class TopicTriggerBagReader(BagReader):
             for topic, msg, t_msg_received in bag.read_messages(topics=self._topics):
                 # Check if the current message is from the trigger topic
                 if topic == self._trigger_topic:
-                    trigger_time = msg.header.stamp.to_sec()
+                    trigger_time = self.get_msg_time(msg, t_msg_received)
                     msgs = self._get_default_msgs()
 
                 # If the trigger_time is set, process messages from other topics
                 if trigger_time and topic in self._topics:
-                    if hasattr(msg, "header"):
-                        msg_time = msg.header.stamp.to_sec()
-                    else:
-                        msg_time = t_msg_received.to_sec()
+                    msg_time = self.get_msg_time(msg, t_msg_received)
                     topic_idx = self._topics.index(topic)
                     if msg_time >= trigger_time and msgs[topic_idx] is None:
-                        msgs[self._topics.index(topic)] = (convert_to_unix_ns(msg_time), msg) 
+                        msgs[self._topics.index(topic)] = (msg_time, msg) 
 
                 if msgs and all(msgs):
                     yield msgs 
@@ -41,6 +38,13 @@ class TopicTriggerBagReader(BagReader):
     def _list_topics(self):
         with rosbag.Bag(self._name, 'r') as bag:
             return bag.get_type_and_topic_info()[1].keys()
+
+    @staticmethod
+    def get_msg_time(msg, t_msg_received):
+        if hasattr(msg, "header"):
+            return msg.header.stamp.to_nsec()
+        else:
+            return t_msg_received.to_nsec()
 
     def _check_topics(self):
         topics_available = self._list_topics()

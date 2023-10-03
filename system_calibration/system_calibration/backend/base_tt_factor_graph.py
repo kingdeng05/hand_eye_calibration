@@ -1,8 +1,13 @@
+import numpy as np
+
 from py_kinetic_backend import HandPoseFactor, TrackPoseFactor, TtPoseFactor 
 from py_kinetic_backend import Cal3Rational, GeneralProjectionFactorCal3Rational 
 from py_kinetic_backend import Diagonal, NonlinearFactorGraph, symbol
 from py_kinetic_backend import Pose3, Values, LevenbergMarquardtOptimizer
 from py_kinetic_backend import BaseTtProjectionFactor, PriorFactorPose3
+from py_kinetic_backend import BetweenFactorPose3 
+
+from ..utils import tf_mat_diff
 
 def solve_base_to_tt_graph_2(pts_all, hand_poses, track_tfs, tt_tfs, initials):
     # set up the keys
@@ -23,7 +28,8 @@ def solve_base_to_tt_graph_2(pts_all, hand_poses, track_tfs, tt_tfs, initials):
     hand_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]) # from robot manual 
     track_prior_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-8, 1e-3, 1e-8, 1e-8]) # large noise in x 
     tt_prior_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-3, 1e-8, 1e-8, 1e-8]) # should only have yaw
-    target2tt_prior_noise = Diagonal.sigmas([1e-2, 1e-5, 1e-5, 1e-4, 1e-1, 1e-1]) # should have mainly roll and y and z are unknown. 
+    target2tt_prior_noise = Diagonal.sigmas([1e-2, 1e-5, 1e-5, 1e-1, 1e-4, 1e-1]) # should have mainly roll and y and z are unknown. 
+    track_between_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8]) # should enforce the track state the same
 
     # set up initial values for time-invariant variables
     values = Values()
@@ -54,6 +60,24 @@ def solve_base_to_tt_graph_2(pts_all, hand_poses, track_tfs, tt_tfs, initials):
         # insert values
         values.insertPose3(track_tf_keys[-1], Pose3(track_tf))
         values.insertPose3(tt_tf_keys[-1], Pose3(tt_tf))
+
+        # these constraints need to be added
+        # because track should be the static across multiple
+        # turntable readings 
+        if len(track_tf_keys) >= 2:
+            diff_vec = tf_mat_diff(
+                values.atPose3(track_tf_keys[-2]).matrix(),
+                values.atPose3(track_tf_keys[-1]).matrix()
+            )
+            # this is not elegant but will do the trick now
+            if abs(diff_vec[3]) < 0.01:
+               between_factor = BetweenFactorPose3(
+                   track_tf_keys[-2],
+                   track_tf_keys[-1],
+                   Pose3(np.eye(4)),
+                   track_between_noise
+               ) 
+               graph.add(between_factor)
 
         # add track and tt prior factor
         graph.add(PriorFactorPose3(track_tf_keys[-1], Pose3(track_tf), track_prior_noise))

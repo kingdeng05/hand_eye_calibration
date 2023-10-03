@@ -34,8 +34,9 @@ def transform_3d_pts(pts, tf):
         pts_tf.append(pt_tf)
     return np.array(pts_tf).reshape(-1, 3)
 
+def tf_mat_diff(mat_1, mat_2, use_deg=True):
+    return mat_to_euler_vec(Pose3(mat_1).between(Pose3(mat_2)).matrix(), use_deg=use_deg)
 
-
+def tf_vec_diff(vec_1, vec_2, use_deg=True):
+    return tf_mat_diff(euler_vec_to_mat(vec_1), euler_vec_to_mat(vec_2), use_deg=use_deg)
     
-
-

@@ -28,5 +28,15 @@ def draw_pts_on_img(img, pts_2d, s=2, c=(0, 255, 0)):
     for pt in pts_2d.astype(int):
         cv.circle(img_vis, tuple(pt), s, c)
     return img_vis
+
+def visualize_reprojection(img, pts_2d, pts_proj, resize_ratio=1):
+    img_copy = img.copy()
+    for pt_proj, pt_2d in zip(pts_proj.astype(int), pts_2d.astype(int)):
+        cv.circle(img_copy, tuple(pt_proj), 4, (0, 0, 255))
+        cv.circle(img_copy, tuple(pt_2d), 4, (0, 255, 0))
+        cv.line(img_copy, tuple(pt_proj), tuple(pt_2d), (255, 0, 0), 3)
+    height, width = img_copy.shape[:2]
+    img_copy = cv.resize(img_copy, (int(width * resize_ratio), int(height * resize_ratio)))
+    return img_copy
          
     
