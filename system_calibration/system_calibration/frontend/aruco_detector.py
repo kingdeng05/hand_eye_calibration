@@ -31,7 +31,10 @@ class ArucoDetector(object):
         return np.array([corner[0] for corner in corners]), ids.flatten()
 
     def refine_corners(self, img, corners):
-        image_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        if len(img.shape) == 3:
+            image_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        else:
+            image_gray = img
         criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 100, 0.0001)
         for corner in corners:
             cv.cornerSubPix(image_gray, corner, winSize=(3, 3), zeroZone=(-1, -1), criteria=criteria)

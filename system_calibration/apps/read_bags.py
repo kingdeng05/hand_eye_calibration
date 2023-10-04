@@ -1,4 +1,5 @@
 import yaml
+import numpy as np
 import cv2 as cv
 from matplotlib import pyplot as plt
 
@@ -87,6 +88,22 @@ def read_base_tt_bag_adhoc(bag_name, pose_yaml):
         #     continue 
         yield msg_to_img(msgs[1][1]), pose, msgs[2][1].data, msgs[3][1].data
 
+def read_joint_bag_adhoc(bag_name, pose_yaml):
+    pose_cfg = yaml.safe_load(open(pose_yaml))
+    quats = [pose_cfg[i]["robot_planning_pose"][:7] for i in range(len(pose_cfg))]
+    poses = [quaternion_to_mat(quat) for quat in quats] 
+    topics = [
+        "/tt/stopped",
+        "/camera/image_color/compressed",
+        "/track_0/position_actual",
+        "/tt/control/angle_actual",
+        "/stereo/left_primary/image_raw/compressed",
+        "/stereo/right_primary/image_raw/compressed",
+    ]
+    reader = TopicTriggerBagReader(bag_name, *topics)
+    for idx, (msgs, pose) in enumerate(zip(reader.read(), poses)):
+        yield msg_to_img(msgs[1][1]), pose, msgs[2][1].data, msgs[3][1].data, msg_to_img(msgs[4][1], RGB=False), msg_to_img(msgs[5][1], RGB=False)
+
 def check_blurriness(image):
     """Compute the variance of Laplacian of the image."""
     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
@@ -107,6 +124,11 @@ if __name__ == "__main__":
     bag_path = "/home/fuhengdeng/test_data/base_tt.bag"
     # read_hand_eye_bag(bag_path)
     # read_intrinsic_bag(bag_path)
-    ret = read_base_tt_bag_adhoc(bag_path, "/home/fuhengdeng/data_collection_yaml/09_25/base_tt.yaml")
-    for _ in ret:
+    # ret = read_base_tt_bag_adhoc(bag_path, "/home/fuhengdeng/data_collection_yaml/09_25/base_tt.yaml")
+    ret = read_joint_bag_adhoc(bag_path, "/home/fuhengdeng/data_collection_yaml/09_25/base_tt.yaml")
+    for _, _, _, _, img_left, img_right in ret:
+        collage = np.hstack([img_left, img_right])
+        collage = cv.resize(collage, (int(collage.shape[1]/2), int(collage.shape[0]/2)))
+        cv.imshow("vis", collage)
+        cv.waitKey(0)
         continue

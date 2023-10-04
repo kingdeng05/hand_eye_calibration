@@ -20,6 +20,7 @@
 #include <gtsam/geometry/PinholeCamera.h>
 
 #include "general_projection_factor.h"
+#include "cam2tt_projection_factor.h"
 #include "hand_eye_factors/dhe_factor.h"
 #include "hand_eye_factors/rm_factor.h"
 #include "hand_eye_factors/he_pose_constraint_factor.h"
@@ -236,6 +237,14 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
              py::arg("world2cam"), py::arg("intrinsic"), 
              py::arg("point_in_target"), py::arg("measurement"), py::arg("model"),
              py::arg("fix_world2cam")=false, py::arg("fix_intrinsic")=false)
+            ;
+
+    py::class_<Cam2TtProjectionFactor<Cal3Rational>, boost::shared_ptr<Cam2TtProjectionFactor<Cal3Rational>>, NonlinearFactor>(m, "Cam2TtProjectionFactorCal3Rational")
+        .def(py::init<Key, Key, Key, const Cal3Rational&, const Point3, const Point2, const SharedNoiseModel&, bool, bool, bool>(),
+             py::arg("cam2tt"), py::arg("target2tt"), 
+             py::arg("tt2tt0"), py::arg("intrinsic"), py::arg("pt_ed"),
+             py::arg("measurement"), py::arg("model"), py::arg("fix_cam2tt")=false,
+             py::arg("fix_target2tt")=false, py::arg("fix_tt2tt0")=false)
             ;
 
     py::class_<TrackPoseFactor, boost::shared_ptr<TrackPoseFactor>, NonlinearFactor>(m, "TrackPoseFactor")

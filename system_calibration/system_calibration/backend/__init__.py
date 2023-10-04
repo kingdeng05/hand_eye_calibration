@@ -1,5 +1,6 @@
 from .dhe_factor_graph import calibrate_dhe_factor_graph
 from .rm_factor_graph import calib_rm_factor_graph, calib_rm2_factor_graph
 from .base_tt_factor_graph import solve_base_to_tt_graph_2
+from .joint_calib_graph import solve_joint_calib
 from .intrinsic_factor_graph import solve_intrinsic_rational
 from .intrinsic_calibrator import IntrinsicCailbrator
