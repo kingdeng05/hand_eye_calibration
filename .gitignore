@@ -79,3 +79,5 @@ compile_commands.json
 # hidden files
 **/.*
 
+# mp4 files
+*.mp4

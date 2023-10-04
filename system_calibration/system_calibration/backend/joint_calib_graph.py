@@ -5,6 +5,7 @@ from py_kinetic_backend import Diagonal, NonlinearFactorGraph, symbol
 from py_kinetic_backend import Pose3, Values, LevenbergMarquardtOptimizer
 from py_kinetic_backend import BaseTtProjectionFactor, PriorFactorPose3
 from py_kinetic_backend import BetweenFactorPose3
+from py_kinetic_backend import CauchyNoiseModel, RobustNoiseModel 
 
 from ..utils import tf_mat_diff
 
@@ -23,7 +24,12 @@ def solve_joint_calib(pts_robot_cam, pts_left_primary, pts_right_primary, track_
     names = []
 
     # set up noise models
-    proj_noise = Diagonal.sigmas([2, 2]) 
+    # proj_noise = Diagonal.sigmas([2, 2]) 
+    proj_noise = RobustNoiseModel.create(
+        CauchyNoiseModel.create(2.),
+        Diagonal.sigmas([2., 2.])
+    ) 
+
     tr2tt_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-6, 0.1, 0.1, 0.1]) # x should be parallel
     base2tr_prior_noise = Diagonal.sigmas([1e-5, 1e-5, 0.1, 1e-4, 1e-4, 1e-4]) # x should be parallel
     hand_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]) # from robot manual 

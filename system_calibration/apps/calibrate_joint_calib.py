@@ -10,6 +10,7 @@ from system_calibration.backend import solve_joint_calib
 from system_calibration.utils import euler_vec_to_mat, mat_to_euler_vec, tf_mat_diff
 from system_calibration.utils import transfer_3d_pts_to_img, calculate_reproj_error, wrap_around_rad
 from system_calibration.utils import visualize_reprojection, draw_pts_on_img 
+from system_calibration.utils import VideoRecorder 
 
 from build_sim_sys import build_sim_sys, simulate_projection
 from build_sim_sys import read_cam_intrinsic, read_cam2ee_calib, get_img_size 
@@ -56,8 +57,8 @@ def get_2d_3d_matches(corners_2d, ids_2d, targets):
     pts_3d, pts_2d = [], []
     for corner,  id in zip(corners_2d, ids_2d):
         # filter out unwanted ids, currently without robust kernels
-        if id in (111, 37):
-            continue
+        # if id in (111, 37):
+        #     continue
         pts_target = targets.find_3d_pts_by_id(id) 
         if pts_target is not None:
             pts_3d.append(pts_target)
@@ -165,6 +166,10 @@ def calibrate_joint_calib(bag_path=None, perturb=False, debug=False):
     pts_rc_all, pts_lpc_all, pts_rpc_all = [], [], []
     initials = get_gt()
 
+    rc_recorder = VideoRecorder(2, filename="rc.mp4")
+    lpc_recorder = VideoRecorder(2, filename="lpc.mp4")
+    rpc_recorder = VideoRecorder(2, filename="rpc.mp4")
+
     for _, (_, _, _, pts_rc, pts_lpc, pts_rpc, hand_pose, track_tf, tt_tf) in enumerate(get_data(bag_path)):
         track_tfs.append(track_tf)
         tt_tfs.append(tt_tf)
@@ -191,9 +196,9 @@ def calibrate_joint_calib(bag_path=None, perturb=False, debug=False):
     print("frontend features collection finished, running optimizatin...")
     ret = solve_joint_calib(pts_rc_all, pts_lpc_all, pts_rpc_all, track_tfs, tt_tfs, pert)
     for key, val in ret.items():
-        if "2" in key and key != "ee2base": # only the static transforms
-            # print(f"diff of {key}: ", mat_to_euler_vec(np.linalg.inv(initials[key]) @ val))
-            print(f"diff of {key}: ", mat_to_euler_vec(initials[key] @ np.linalg.inv(val)))
+        if "2" in key: # only the static transforms
+            print(f"diff of {key}: ", mat_to_euler_vec(np.linalg.inv(initials[key]) @ val))
+            # print(f"diff of {key}: ", mat_to_euler_vec(initials[key] @ np.linalg.inv(val)))
     print("track2tt: ", mat_to_euler_vec(ret["track2tt"]))
     print("base2track: ", mat_to_euler_vec(ret["base2track"]))
 
@@ -201,15 +206,16 @@ def calibrate_joint_calib(bag_path=None, perturb=False, debug=False):
     pts_2d_rc, pts_proj_rc = [], [] 
     pts_2d_lpc, pts_proj_lpc = [], []
     pts_2d_rpc, pts_proj_rpc = [], []
-    for _, ((img_rc, img_lpc, img_rpc, pts_rc, pts_lpc, pts_rpc, ee2base_meas, track_tf_meas, tt_tf_meas), track_tf, tt_tf) in enumerate(zip(get_data(bag_path), ret["track_tfs"], ret["tt_tfs"])):
+    for idx, ((img_rc, img_lpc, img_rpc, pts_rc, pts_lpc, pts_rpc, ee2base_meas, track_tf_meas, tt_tf_meas), track_tf, tt_tf) in enumerate(zip(get_data(bag_path), ret["track_tfs"], ret["tt_tfs"])):
         tf_target2tt_i = tt_tf @ ret["target2tt_0"] 
 
         # project on the robot camera
         tf_cam2tt = ret["track2tt"] @ track_tf @ ret["base2track"] @ ret["ee2base"] @ initials["cam2ee"]
         tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt
         tf_cam2tt_init = initials["track2tt"] @ track_tf @ initials["base2track"] @ ret["ee2base"] @ initials["cam2ee"] 
-        pts_2d, pts_proj = evaluate_reproj(img_rc, pts_rc["3d"], pts_rc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
-                                           initials["intrinsic"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
+        pts_2d, pts_proj, img_rc = evaluate_reproj(img_rc, pts_rc["3d"], pts_rc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
+                                                   initials["intrinsic"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
+        rc_recorder.add_frame(img_rc, text=f"frame-{idx}")
         pts_2d_rc.append(pts_2d)
         pts_proj_rc.append(pts_proj) 
 
@@ -217,8 +223,9 @@ def calibrate_joint_calib(bag_path=None, perturb=False, debug=False):
         tf_cam2tt = ret["lpc2tt"] 
         tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt 
         tf_cam2tt_init = initials["lpc2tt"] 
-        pts_2d, pts_proj = evaluate_reproj(img_lpc, pts_lpc["3d"], pts_lpc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
-                                           initials["intrinsic_lpc"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
+        pts_2d, pts_proj, img_lpc = evaluate_reproj(img_lpc, pts_lpc["3d"], pts_lpc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
+                                                    initials["intrinsic_lpc"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
+        lpc_recorder.add_frame(img_lpc, text=f"frame-{idx}")
         pts_2d_lpc.append(pts_2d)
         pts_proj_lpc.append(pts_proj) 
 
@@ -226,8 +233,9 @@ def calibrate_joint_calib(bag_path=None, perturb=False, debug=False):
         tf_cam2tt = ret["rpc2tt"] 
         tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt 
         tf_cam2tt_init = initials["rpc2tt"] 
-        pts_2d, pts_proj = evaluate_reproj(img_rpc, pts_rpc["3d"], pts_rpc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
-                                           initials["intrinsic_rpc"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
+        pts_2d, pts_proj, img_rpc = evaluate_reproj(img_rpc, pts_rpc["3d"], pts_rpc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
+                                                    initials["intrinsic_rpc"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
+        rpc_recorder.add_frame(img_rpc, text=f"frame-{idx}")
         pts_2d_rpc.append(pts_2d)
         pts_proj_rpc.append(pts_proj) 
 
@@ -249,25 +257,25 @@ def calibrate_joint_calib(bag_path=None, perturb=False, debug=False):
     #             "transformation": tf_track2tt.tolist()
     #         }, f, default_flow_style=False)
 
-def evaluate_reproj(img, pts_3d, pts_2d, tf_cam2target, tf_cam2tt, tf_cam2tt_init, intrinsic, tt_tf, track_tf, tt_meas, track_meas, debug):
+def evaluate_reproj(img_vis, pts_3d, pts_2d, tf_cam2target, tf_cam2tt, tf_cam2tt_init, intrinsic, tt_tf, track_tf, tt_meas, track_meas, debug):
     pts_proj = transfer_3d_pts_to_img(pts_3d, tf_cam2target, intrinsic)
+    img_vis = visualize_reprojection(img_vis, pts_2d, pts_proj) 
+    img_vis = turntable_projection(img_vis, tf_cam2tt, intrinsic, color=(0, 255, 0))
+    # tf_cam2tt_init = initials["track2tt"] @ track_tf_meas @ initials["base2track"] @ ee2base_meas @ initials["cam2ee"] 
+    img_vis = turntable_projection(img_vis, tf_cam2tt_init, intrinsic, color=(0, 0, 255), show_axes=False)
+    img_vis = cv.resize(img_vis, (int(img_vis.shape[1]/2), int(img_vis.shape[0]/2)))
+    cv.putText(
+        img_vis, 
+        f"track_diff: {tf_mat_diff(track_meas, track_tf)} tt_diff: {tf_mat_diff(tt_meas, tt_tf)}",
+        (50, 50),
+        cv.FONT_HERSHEY_SIMPLEX,
+        0.5,
+        (0, 255, 0)
+    )
     if debug:
-        img_vis = visualize_reprojection(img, pts_2d, pts_proj) 
-        img_vis = turntable_projection(img_vis, tf_cam2tt, intrinsic, color=(0, 255, 0))
-        # tf_cam2tt_init = initials["track2tt"] @ track_tf_meas @ initials["base2track"] @ ee2base_meas @ initials["cam2ee"] 
-        img_vis = turntable_projection(img_vis, tf_cam2tt_init, intrinsic, color=(0, 0, 255), show_axes=False)
-        img_vis = cv.resize(img_vis, (int(img_vis.shape[1]/2), int(img_vis.shape[0]/2)))
-        cv.putText(
-            img_vis, 
-            f"track_diff: {tf_mat_diff(track_meas, track_tf)} tt_diff: {tf_mat_diff(tt_meas, tt_tf)}",
-            (50, 50),
-            cv.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (0, 255, 0)
-        )
         cv.imshow("vis", img_vis)
         cv.waitKey(0)
-    return pts_2d, pts_proj
+    return pts_2d, pts_proj, img_vis
 
 
 def turntable_projection(img, tf_cam2tt, intrinsic, color=(0, 255, 0), tt_radius=2.75, show_axes=True):
@@ -309,4 +317,4 @@ def turntable_projection(img, tf_cam2tt, intrinsic, color=(0, 255, 0), tt_radius
 
 if __name__ == "__main__":
     # calibrate_joint_calib(bag_path=None, perturb=True, debug=True)
-    calibrate_joint_calib(bag_path="/home/fuhengdeng/test_data/base_tt.bag", perturb=False, debug=True)
+    calibrate_joint_calib(bag_path="/home/fuhengdeng/test_data/base_tt.bag", perturb=False, debug=False)

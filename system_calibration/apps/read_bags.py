@@ -8,7 +8,6 @@ from system_calibration.frontend import ArucoDetector
 from system_calibration.utils import msg_to_img, pose_msg_to_tf, quaternion_to_mat
 
 
-
 def read_intrinsic_bag(bag_name):
     topics = [
         "/robot_0/robot_base/end_effector_pose_stopped",
