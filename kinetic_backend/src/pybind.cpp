@@ -21,6 +21,7 @@
 
 #include "general_projection_factor.h"
 #include "cam2tt_projection_factor.h"
+#include "lidar2tt_point2plane_factor.h"
 #include "hand_eye_factors/dhe_factor.h"
 #include "hand_eye_factors/rm_factor.h"
 #include "hand_eye_factors/he_pose_constraint_factor.h"
@@ -29,6 +30,7 @@
 #include "base_tt_factors/tt_pose_factor.h"
 #include "base_tt_factors/base_tt_projection_factor.h"
 #include "geometry/Cal3Rational.h"
+#include "geometry/surfel3.h"
 
 namespace py = pybind11;
 using namespace gtsam;
@@ -59,6 +61,7 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
     py::class_<OptionalJacobian<2, 11>>(m, "OptionalJacobian211");
     py::class_<OptionalJacobian<2, 15>>(m, "OptionalJacobian215");
     py::class_<OptionalJacobian<2, 18>>(m, "OptionalJacobian218");
+    py::class_<OptionalJacobian<3, 2>>(m, "OptionalJacobian32");
     py::class_<OptionalJacobian<3, 3>>(m, "OptionalJacobian33");
     py::class_<OptionalJacobian<3, 6>>(m, "OptionalJacobian36");
     py::class_<OptionalJacobian<6, 6>>(m, "OptionalJacobian66");
@@ -172,7 +175,6 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
             py::arg(), py::arg()=OptionalJacobian<2, 18>(),
             py::arg()=OptionalJacobian<2, 3>())
         ;
-
     py::class_<Cal3_S2, boost::shared_ptr<Cal3_S2>>(m, "Cal3_S2")
         .def(py::init<const Vector&>())
         .def("vector", &Cal3_S2::vector)
@@ -184,6 +186,19 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
     py::class_<Cal3Rational, boost::shared_ptr<Cal3Rational>>(m, "Cal3Rational")
         .def(py::init<const Vector&>())
         .def("vector", &Cal3Rational::vector)
+        ;
+
+    // surfel3
+    py::class_<Surfel3, boost::shared_ptr<Surfel3>>(m, "Surfel3")
+        .def(py::init<const Point3&, const Unit3&, double>())
+        .def_readwrite("center", &Surfel3::center)
+        .def_readwrite("normal", &Surfel3::normal)
+        .def_readwrite("radius", &Surfel3::radius)
+        .def("distance", &Surfel3::Distance)
+        ;
+    py::class_<Unit3, boost::shared_ptr<Unit3>>(m, "Unit3")
+        .def(py::init<const Vector3&>())
+        .def("point3", &Unit3::point3, py::arg()=OptionalJacobian<3, 2>())
         ;
 
     // PriorFactor
@@ -242,7 +257,7 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
     py::class_<Cam2TtProjectionFactor<Cal3Rational>, boost::shared_ptr<Cam2TtProjectionFactor<Cal3Rational>>, NonlinearFactor>(m, "Cam2TtProjectionFactorCal3Rational")
         .def(py::init<Key, Key, Key, const Cal3Rational&, const Point3, const Point2, const SharedNoiseModel&, bool, bool, bool>(),
              py::arg("cam2tt"), py::arg("target2tt"), 
-             py::arg("tt2tt0"), py::arg("intrinsic"), py::arg("pt_ed"),
+             py::arg("tt2tt0"), py::arg("intrinsic"), py::arg("pt_3d"),
              py::arg("measurement"), py::arg("model"), py::arg("fix_cam2tt")=false,
              py::arg("fix_target2tt")=false, py::arg("fix_tt2tt0")=false)
             ;
@@ -272,6 +287,14 @@ PYBIND11_MODULE(py_kinetic_backend, m) {
              py::arg("intrinsic"), py::arg("model"), py::arg("fix_ee2base")=false, py::arg("fix_base2track")=false,
              py::arg("fix_track2track0")=false, py::arg("fix_track2tt")=false, py::arg("fix_tt2tt0")=false,
              py::arg("fix_target2tt")=false)
+            ;
+
+    py::class_<LiDAR2TtPoint2PlaneFactor, boost::shared_ptr<LiDAR2TtPoint2PlaneFactor>, NonlinearFactor>(m, "LiDAR2TtPoint2PlaneFactor")
+        .def(py::init<Key, Key, Key, const Point3&, const Surfel3&, const SharedNoiseModel&, bool, bool, bool>(),
+             py::arg("sensor2tt"), py::arg("target2tt"), 
+             py::arg("tt2tt0"), py::arg("measured"), py::arg("surfel"),
+             py::arg("model"), py::arg("fix_sensor2tt")=false,
+             py::arg("fix_target2tt")=false, py::arg("fix_tt2tt0")=false)
             ;
 
 }

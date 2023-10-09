@@ -2,6 +2,7 @@ import cv2 as cv
 import numpy as np
 import rospy
 from cv_bridge import CvBridge
+import sensor_msgs.point_cloud2 as pc2
 
 from py_kinetic_backend import Pose3, Rot3
 
@@ -25,3 +26,9 @@ def msg_to_img(img_msg, RGB=True, compressed=True):
 def pose_msg_to_tf(pose_msg):
     rot = Rot3(pose_msg.orientation.w, pose_msg.orientation.x, pose_msg.orientation.y, pose_msg.orientation.z)
     return Pose3(rot, np.array([pose_msg.position.x, pose_msg.position.y, pose_msg.position.z])).matrix()
+
+def pc2_msg_to_array(pc2_msg):
+    gen = pc2.read_points(pc2_msg, field_names=("x", "y", "z"), skip_nans=True)
+    pc = np.array(list(gen))
+    return pc 
+    

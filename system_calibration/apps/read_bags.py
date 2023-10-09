@@ -1,11 +1,12 @@
 import yaml
 import numpy as np
 import cv2 as cv
-from matplotlib import pyplot as plt
+from scipy.spatial import KDTree
 
 from system_calibration.IO import TopicTriggerBagReader
-from system_calibration.frontend import ArucoDetector 
-from system_calibration.utils import msg_to_img, pose_msg_to_tf, quaternion_to_mat
+from system_calibration.utils import msg_to_img, pose_msg_to_tf, quaternion_to_mat, euler_vec_to_mat
+from system_calibration.utils import pc2_msg_to_array, plane_fitting, numpy_to_pcd, vis_points_with_normal 
+from system_calibration.utils import transform_3d_pts 
 
 
 def read_intrinsic_bag(bag_name):
@@ -91,6 +92,7 @@ def read_joint_bag_adhoc(bag_name, pose_yaml):
     pose_cfg = yaml.safe_load(open(pose_yaml))
     quats = [pose_cfg[i]["robot_planning_pose"][:7] for i in range(len(pose_cfg))]
     poses = [quaternion_to_mat(quat) for quat in quats] 
+    tf_tt2lidar = euler_vec_to_mat([-25., -0.3, 179.4, 0, 3.44, 2.28], use_deg=True)
     topics = [
         "/tt/stopped",
         "/camera/image_color/compressed",
@@ -98,24 +100,17 @@ def read_joint_bag_adhoc(bag_name, pose_yaml):
         "/tt/control/angle_actual",
         "/stereo/left_primary/image_raw/compressed",
         "/stereo/right_primary/image_raw/compressed",
+        "/lidar_0/cropped_points"
     ]
     reader = TopicTriggerBagReader(bag_name, *topics)
-    for idx, (msgs, pose) in enumerate(zip(reader.read(), poses)):
-        yield msg_to_img(msgs[1][1]), pose, msgs[2][1].data, msgs[3][1].data, msg_to_img(msgs[4][1], RGB=False), msg_to_img(msgs[5][1], RGB=False)
+    for _, (msgs, pose) in enumerate(zip(reader.read(), poses)):
+        yield msg_to_img(msgs[1][1]), pose, msgs[2][1].data, msgs[3][1].data, msg_to_img(msgs[4][1], RGB=False), \
+              msg_to_img(msgs[5][1], RGB=False), transform_3d_pts(pc2_msg_to_array(msgs[6][1]), tf_tt2lidar)
 
 def check_blurriness(image):
     """Compute the variance of Laplacian of the image."""
     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
     return cv.Laplacian(gray, cv.CV_64F).var()
-
-def plot_blurriness(bag_name):
-    topics = ["/camera/image_color/compressed"]
-    reader = TopicTriggerBagReader(bag_name, *topics)
-    vals = []
-    for msgs in reader.read():
-        vals.append(check_blurriness(msg_to_img(msgs[0][1])))
-    plt.plot(vals)
-    plt.show()
 
      
 if __name__ == "__main__":
@@ -125,9 +120,15 @@ if __name__ == "__main__":
     # read_intrinsic_bag(bag_path)
     # ret = read_base_tt_bag_adhoc(bag_path, "/home/fuhengdeng/data_collection_yaml/09_25/base_tt.yaml")
     ret = read_joint_bag_adhoc(bag_path, "/home/fuhengdeng/data_collection_yaml/09_25/base_tt.yaml")
-    for _, _, _, _, img_left, img_right in ret:
-        collage = np.hstack([img_left, img_right])
-        collage = cv.resize(collage, (int(collage.shape[1]/2), int(collage.shape[0]/2)))
-        cv.imshow("vis", collage)
-        cv.waitKey(0)
-        continue
+    for idx, (_, _, _, _, img_left, img_right, pc) in enumerate(ret):
+        pc = pc[::5]
+        # numpy_to_pcd(pc, f"pcl-{idx}.pcd")
+        kdtree = KDTree(pc)
+        normals = []
+        pts_good = []
+        for pt in pc: 
+            normal = plane_fitting(pt, pc, 0.4, kdtree=kdtree, fit_std_thres=0.01)
+            if normal is not None:
+                normals.append(normal)
+                pts_good.append(pt)
+        vis_points_with_normal(pts_good, normals, show_origin=False, show_point_direction=False) 

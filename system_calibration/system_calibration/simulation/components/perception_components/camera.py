@@ -2,6 +2,7 @@ import numpy as np
 
 from .perception_component import PerceptionComponent
 from ..target_components import ArucoCubeTarget, ArucoBoardTarget, CheckerboardTarget 
+from .utils import is_plane_visible 
 from ....utils import euler_vec_to_mat, transform_3d_pts
 
 
@@ -50,7 +51,7 @@ class Camera(PerceptionComponent):
         view_dir = pts_cam.mean(axis=0) 
         # calculate the z axis of the face
         face_vec_cam = (np.linalg.inv(cam_pose)[:3, :3].dot(np.array([0, 0, 1]).reshape(-1, 1))).flatten()
-        if not self._is_face_visible(face_vec_cam, view_dir):
+        if not is_plane_visible(face_vec_cam, view_dir):
             pts_cam = [] # clear the points
         pts_img_valid, pts_cam_valid = self._pts_in_image(pts_cam) 
         pts_target_valid = transform_3d_pts(pts_cam_valid, cam_pose)
@@ -67,11 +68,3 @@ class Camera(PerceptionComponent):
                 pts_3d.append(pt_target)
         return np.array(pts_2d).reshape(-1, 2), np.array(pts_3d).reshape(-1, 3)
          
-    @staticmethod
-    def _is_face_visible(normal, view_direction):
-        # Normalize the normal and the view direction
-        normal = normal / np.linalg.norm(normal)
-        view_direction = view_direction / np.linalg.norm(view_direction)
-        # Note: normal is actually pointing inward 
-        # If the dot product is positive, the face is facing towards from the camera
-        return np.dot(normal, view_direction) > 0

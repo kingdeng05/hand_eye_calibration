@@ -38,10 +38,13 @@ class ArucoCubeTarget(Target):
     def frames(self):
         return self._frames
 
-    def get_pts_3d_by_id(self, id):
+    def get_pts_3d_by_id(self, id, to_base=True):
         tf_base2face = euler_vec_to_mat(self._frames[id], use_deg=False)
         tf_face2base = np.linalg.inv(tf_base2face)
-        return transform_3d_pts(self._targets[id].get_pts(), tf_face2base) 
+        pts = self._targets[id].get_pts()
+        if to_base: 
+            pts = transform_3d_pts(pts, tf_face2base) 
+        return pts 
 
     def get_pts(self):
         pts_all = []
