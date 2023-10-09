@@ -173,15 +173,16 @@ def read_bag(bag_path):
         tt_tf = tt_reading_to_transform(msgs[3]) 
         tf_lidar2target = tf_tt2target @ np.linalg.inv(tt_tf) @ tf_lidar2tt
         yield msgs[0], \
-              msgs[4], \
-              msgs[5], \
+              cv.cvtColor(msgs[4], cv.COLOR_GRAY2RGB), \
+              cv.cvtColor(msgs[5], cv.COLOR_GRAY2RGB), \
+              msgs[6], \
               get_2d_3d_matches(corners, ids, targets), \
               get_2d_3d_matches(corners_lpc, ids_lpc, targets), \
               get_2d_3d_matches(corners_rpc, ids_rpc, targets), \
+              get_3d_surfel_matches(msgs[6], targets, tf_lidar2target), \
               msgs[1], \
               track_reading_to_transform(msgs[2]), \
-              tt_tf, \
-              get_3d_surfel_matches(msgs[6], targets, tf_lidar2target) 
+              tt_tf
 
 def perturb_pose3(pose_mat, var, current=True):
     assert(len(var) == 6)
@@ -383,6 +384,16 @@ def turntable_projection(img, tf_cam2tt, intrinsic, color=(0, 255, 0), tt_radius
             )
     return img 
 
+def lidar2cam_proj(pts_lidar, img, tf_cam2lidar, tf_cam2lidar_init, intrinsic, debug=False):
+    pts_img = transfer_3d_pts_to_img(pts_lidar, tf_cam2lidar, intrinsic)
+    img_vis = draw_pts_on_img(img, pts_img)
+    pts_img = transfer_3d_pts_to_img(pts_lidar, tf_cam2lidar_init, intrinsic)
+    img_vis = draw_pts_on_img(img_vis, pts_img, c=(0, 0, 255))
+    img_vis = cv.resize(img_vis, (int(img_vis.shape[1]/2), int(img_vis.shape[0]/2)))
+    if debug:
+        cv.imshow("vis", img_vis)
+        cv.waitKey(0)
+    return img_vis
 
 def calibrate_joint_calib_w_lidar(bag_path=None, perturb=False, debug=False):
     track_tfs = []
@@ -394,8 +405,9 @@ def calibrate_joint_calib_w_lidar(bag_path=None, perturb=False, debug=False):
     rc_recorder = VideoRecorder(2, filename="rc.mp4")
     lpc_recorder = VideoRecorder(2, filename="lpc.mp4")
     rpc_recorder = VideoRecorder(2, filename="rpc.mp4")
+    lidar_recorder = VideoRecorder(2, filename="lidar.mp4")
 
-    for _, (_, _, _, pts_rc, pts_lpc, pts_rpc, hand_pose, track_tf, tt_tf, lidar_feature) in enumerate(get_data(bag_path)):
+    for _, (_, _, _, _, pts_rc, pts_lpc, pts_rpc, lidar_feature, hand_pose, track_tf, tt_tf) in enumerate(get_data(bag_path)):
         track_tfs.append(track_tf)
         tt_tfs.append(tt_tf)
         pts_rc_all.append(pts_rc)
@@ -429,48 +441,54 @@ def calibrate_joint_calib_w_lidar(bag_path=None, perturb=False, debug=False):
     print("base2track: ", mat_to_euler_vec(ret["base2track"]))
 
     # evaluate the result
-    # pts_2d_rc, pts_proj_rc = [], [] 
-    # pts_2d_lpc, pts_proj_lpc = [], []
-    # pts_2d_rpc, pts_proj_rpc = [], []
-    # for idx, ((img_rc, img_lpc, img_rpc, pts_rc, pts_lpc, pts_rpc, ee2base_meas, track_tf_meas, tt_tf_meas, _), track_tf, tt_tf) in enumerate(zip(get_data(bag_path), ret["track_tfs"], ret["tt_tfs"])):
-    #     tf_target2tt_i = tt_tf @ ret["target2tt_0"] 
+    pts_2d_rc, pts_proj_rc = [], [] 
+    pts_2d_lpc, pts_proj_lpc = [], []
+    pts_2d_rpc, pts_proj_rpc = [], []
+    for idx, ((img_rc, img_lpc, img_rpc, pts_lidar, pts_rc, pts_lpc, pts_rpc, _, ee2base_meas, track_tf_meas, tt_tf_meas), track_tf, tt_tf) in enumerate(zip(get_data(bag_path), ret["track_tfs"], ret["tt_tfs"])):
+        tf_target2tt_i = tt_tf @ ret["target2tt_0"] 
 
-    #     # project on the robot camera
-    #     tf_cam2tt = ret["track2tt"] @ track_tf @ ret["base2track"] @ ret["ee2base"] @ initials["cam2ee"]
-    #     tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt
-    #     tf_cam2tt_init = initials["track2tt"] @ track_tf @ initials["base2track"] @ ret["ee2base"] @ initials["cam2ee"] 
-    #     pts_2d, pts_proj, img_rc = evaluate_reproj(img_rc, pts_rc["3d"], pts_rc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
-    #                                                initials["intrinsic"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
-    #     rc_recorder.add_frame(img_rc, text=f"frame-{idx}")
-    #     pts_2d_rc.append(pts_2d)
-    #     pts_proj_rc.append(pts_proj) 
+        # project on the robot camera
+        tf_cam2tt = ret["track2tt"] @ track_tf @ ret["base2track"] @ ret["ee2base"] @ initials["cam2ee"]
+        tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt
+        tf_cam2tt_init = initials["track2tt"] @ track_tf @ initials["base2track"] @ ret["ee2base"] @ initials["cam2ee"] 
+        pts_2d, pts_proj, img_rc = evaluate_reproj(img_rc, pts_rc["3d"], pts_rc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
+                                                   initials["intrinsic"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
+        rc_recorder.add_frame(img_rc, text=f"frame-{idx}")
+        pts_2d_rc.append(pts_2d)
+        pts_proj_rc.append(pts_proj) 
 
-    #     # project on the left primary camera
-    #     tf_cam2tt = ret["lpc2tt"] 
-    #     tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt 
-    #     tf_cam2tt_init = initials["lpc2tt"] 
-    #     pts_2d, pts_proj, img_lpc = evaluate_reproj(img_lpc, pts_lpc["3d"], pts_lpc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
-    #                                                 initials["intrinsic_lpc"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
-    #     lpc_recorder.add_frame(img_lpc, text=f"frame-{idx}")
-    #     pts_2d_lpc.append(pts_2d)
-    #     pts_proj_lpc.append(pts_proj) 
+        # project on the left primary camera
+        tf_cam2tt = ret["lpc2tt"] 
+        tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt 
+        tf_cam2tt_init = initials["lpc2tt"] 
+        pts_2d, pts_proj, img_lpc_vis = evaluate_reproj(img_lpc, pts_lpc["3d"], pts_lpc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
+                                                    initials["intrinsic_lpc"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
+        lpc_recorder.add_frame(img_lpc_vis, text=f"frame-{idx}")
+        pts_2d_lpc.append(pts_2d)
+        pts_proj_lpc.append(pts_proj) 
 
-    #     # project on the right primary camera
-    #     tf_cam2tt = ret["rpc2tt"] 
-    #     tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt 
-    #     tf_cam2tt_init = initials["rpc2tt"] 
-    #     pts_2d, pts_proj, img_rpc = evaluate_reproj(img_rpc, pts_rpc["3d"], pts_rpc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
-    #                                                 initials["intrinsic_rpc"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
-    #     rpc_recorder.add_frame(img_rpc, text=f"frame-{idx}")
-    #     pts_2d_rpc.append(pts_2d)
-    #     pts_proj_rpc.append(pts_proj) 
+        # project on the right primary camera
+        tf_cam2tt = ret["rpc2tt"] 
+        tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt 
+        tf_cam2tt_init = initials["rpc2tt"] 
+        pts_2d, pts_proj, img_rpc = evaluate_reproj(img_rpc, pts_rpc["3d"], pts_rpc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
+                                                    initials["intrinsic_rpc"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
+        rpc_recorder.add_frame(img_rpc, text=f"frame-{idx}")
+        pts_2d_rpc.append(pts_2d)
+        pts_proj_rpc.append(pts_proj) 
 
-    # print("robot camera statistics:")
-    # print_reproj_stats(pts_2d_rc, pts_proj_rc)
-    # print("left primary camera statistics:")
-    # print_reproj_stats(pts_2d_lpc, pts_proj_lpc)
-    # print("right primary camera statistics:")
-    # print_reproj_stats(pts_2d_rpc, pts_proj_rpc)
+        # add lidar projection on one of the primary cameras
+        tf_lidar2cam = np.linalg.inv(ret["lidar2tt"]) @ ret["lpc2tt"]
+        tf_lidar2cam_init = np.linalg.inv(initials["lidar2tt"]) @ initials["lpc2tt"]
+        img_lidar = lidar2cam_proj(pts_lidar, img_lpc, tf_lidar2cam, tf_lidar2cam_init, initials["intrinsic_lpc"], debug=debug)
+        lidar_recorder.add_frame(img_lidar, text=f"frame-{idx}")
+
+    print("robot camera statistics:")
+    print_reproj_stats(pts_2d_rc, pts_proj_rc)
+    print("left primary camera statistics:")
+    print_reproj_stats(pts_2d_lpc, pts_proj_lpc)
+    print("right primary camera statistics:")
+    print_reproj_stats(pts_2d_rpc, pts_proj_rpc)
 
 if __name__ == "__main__":
     # calibrate_joint_calib(bag_path=None, perturb=True, debug=True)
