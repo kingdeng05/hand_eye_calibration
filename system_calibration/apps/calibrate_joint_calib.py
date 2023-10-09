@@ -173,8 +173,8 @@ def read_bag(bag_path):
         tt_tf = tt_reading_to_transform(msgs[3]) 
         tf_lidar2target = tf_tt2target @ np.linalg.inv(tt_tf) @ tf_lidar2tt
         yield msgs[0], \
-              cv.cvtColor(msgs[4], cv.COLOR_GRAY2RGB), \
-              cv.cvtColor(msgs[5], cv.COLOR_GRAY2RGB), \
+              msgs[4], \
+              msgs[5], \
               msgs[6], \
               get_2d_3d_matches(corners, ids, targets), \
               get_2d_3d_matches(corners_lpc, ids_lpc, targets), \

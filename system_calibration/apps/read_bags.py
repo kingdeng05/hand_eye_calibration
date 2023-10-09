@@ -8,6 +8,8 @@ from system_calibration.utils import msg_to_img, pose_msg_to_tf, quaternion_to_m
 from system_calibration.utils import pc2_msg_to_array, plane_fitting, numpy_to_pcd, vis_points_with_normal 
 from system_calibration.utils import transform_3d_pts 
 
+from build_sim_sys import build_sim_sys
+
 
 def read_intrinsic_bag(bag_name):
     topics = [
@@ -88,6 +90,22 @@ def read_base_tt_bag_adhoc(bag_name, pose_yaml):
         #     continue 
         yield msg_to_img(msgs[1][1]), pose, msgs[2][1].data, msgs[3][1].data
 
+def read_joint_bag(bag_name):
+    sim = build_sim_sys()
+    topics = [
+        "/tt/stopped",
+        "/camera/image_color/compressed",
+        "/track_0/position_actual",
+        "/tt/control/angle_actual",
+        "/stereo/left_primary/image_raw/compressed",
+        "/stereo/right_primary/image_raw/compressed",
+        "/lidar_0/cropped_points"
+    ]
+    reader = TopicTriggerBagReader(bag_name, *topics)
+    for _, msgs in enumerate(zip(reader.read())):
+        yield msg_to_img(msgs[1][1], RGB=False), pose_msg_to_tf(msgs[2][1]), msgs[2][1].data, msgs[3][1].data, msg_to_img(msgs[4][1], RGB=False), \
+              msg_to_img(msgs[5][1], RGB=False), crop_lidar_roi(msgs[6][1], sim.calibration["lidar"]["tt"]) 
+
 def read_joint_bag_adhoc(bag_name, pose_yaml):
     pose_cfg = yaml.safe_load(open(pose_yaml))
     quats = [pose_cfg[i]["robot_planning_pose"][:7] for i in range(len(pose_cfg))]
@@ -112,7 +130,13 @@ def check_blurriness(image):
     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
     return cv.Laplacian(gray, cv.CV_64F).var()
 
-     
+def crop_lidar_roi(pts_lidar, tf_lidar2tt_init, radius=2.5, height_thres=0.05):
+    pts_tt = transform_3d_pts(pts_lidar, tf_lidar2tt_init)
+    z_crop = pts_tt[:, 2] > height_thres
+    plane_crop = np.linalg.norm(pts_tt[:, :2], axis=1) < radius
+    return pts_lidar[z_crop & plane_crop]
+
+
 if __name__ == "__main__":
     # bag_path = "/home/fuhengdeng/test_data/hand_eye.bag"
     bag_path = "/home/fuhengdeng/test_data/base_tt.bag"

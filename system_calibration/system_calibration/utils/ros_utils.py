@@ -17,7 +17,11 @@ def convert_to_unix_ms(stamp):
 def msg_to_img(img_msg, RGB=True, compressed=True):
     if compressed:
         # compressed image parsing
-        img = cv.imdecode(np.frombuffer(img_msg.data, np.uint8), cv.IMREAD_COLOR if RGB else cv.IMREAD_GRAYSCALE)
+        if RGB:
+            img = cv.imdecode(np.frombuffer(img_msg.data, np.uint8), cv.IMREAD_COLOR)
+        else:
+            img = cv.imdecode(np.frombuffer(img_msg.data, np.uint8), cv.IMREAD_GRAYSCALE)
+            img = cv.cvtColor(img, cv.COLOR_GRAY2RGB)
     else:
         # raw msg parsing
         img = np.array(bridge.imgmsg_to_cv2(img_msg, "bgr8"))
