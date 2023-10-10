@@ -6,7 +6,7 @@ from scipy.spatial import KDTree
 from system_calibration.IO import TopicTriggerBagReader
 from system_calibration.utils import msg_to_img, pose_msg_to_tf, quaternion_to_mat, euler_vec_to_mat
 from system_calibration.utils import pc2_msg_to_array, plane_fitting, numpy_to_pcd, vis_points_with_normal 
-from system_calibration.utils import transform_3d_pts 
+from system_calibration.utils import transform_3d_pts, mat_to_euler_vec 
 
 from build_sim_sys import build_sim_sys
 
@@ -94,23 +94,27 @@ def read_joint_bag(bag_name):
     sim = build_sim_sys()
     topics = [
         "/tt/stopped",
-        "/camera/image_color/compressed",
+        "/camera/image_raw/compressed",
+        "/robot_0/robot_base/end_effector_pose",
         "/track_0/position_actual",
         "/tt/control/angle_actual",
         "/stereo/left_primary/image_raw/compressed",
         "/stereo/right_primary/image_raw/compressed",
-        "/lidar_0/cropped_points"
+        "/lidar_0/downsampled/velodyne_points"
     ]
     reader = TopicTriggerBagReader(bag_name, *topics)
-    for _, msgs in enumerate(zip(reader.read())):
-        yield msg_to_img(msgs[1][1], RGB=False), pose_msg_to_tf(msgs[2][1]), msgs[2][1].data, msgs[3][1].data, msg_to_img(msgs[4][1], RGB=False), \
-              msg_to_img(msgs[5][1], RGB=False), crop_lidar_roi(msgs[6][1], sim.calibration["lidar"]["tt"]) 
+    for idx, msgs in enumerate(reader.read()):
+        if idx == 0:
+            continue
+        lidar_pts = crop_lidar_roi(pc2_msg_to_array(msgs[7][1]), sim.calibration["lidar"]["tt"])
+        yield msg_to_img(msgs[1][1], RGB=False), pose_msg_to_tf(msgs[2][1].pose), msgs[3][1].data, msgs[4][1].data, msg_to_img(msgs[5][1], RGB=False), \
+              msg_to_img(msgs[6][1], RGB=False), lidar_pts 
 
 def read_joint_bag_adhoc(bag_name, pose_yaml):
     pose_cfg = yaml.safe_load(open(pose_yaml))
     quats = [pose_cfg[i]["robot_planning_pose"][:7] for i in range(len(pose_cfg))]
     poses = [quaternion_to_mat(quat) for quat in quats] 
-    tf_tt2lidar = euler_vec_to_mat([-25., -0.3, 179.4, 0, 3.44, 2.28], use_deg=True)
+    tf_lidar2tt = euler_vec_to_mat([-25., -0.3, 179.4, 0, 3.44, 2.28], use_deg=True)
     topics = [
         "/tt/stopped",
         "/camera/image_color/compressed",
@@ -121,9 +125,10 @@ def read_joint_bag_adhoc(bag_name, pose_yaml):
         "/lidar_0/cropped_points"
     ]
     reader = TopicTriggerBagReader(bag_name, *topics)
-    for _, (msgs, pose) in enumerate(zip(reader.read(), poses)):
+    for idx, (msgs, pose) in enumerate(zip(reader.read(), poses)):
+        lidar_pts = transform_3d_pts(pc2_msg_to_array(msgs[6][1]), np.linalg.inv(tf_lidar2tt))
         yield msg_to_img(msgs[1][1]), pose, msgs[2][1].data, msgs[3][1].data, msg_to_img(msgs[4][1], RGB=False), \
-              msg_to_img(msgs[5][1], RGB=False), transform_3d_pts(pc2_msg_to_array(msgs[6][1]), tf_tt2lidar)
+              msg_to_img(msgs[5][1], RGB=False), lidar_pts 
 
 def check_blurriness(image):
     """Compute the variance of Laplacian of the image."""
@@ -139,13 +144,16 @@ def crop_lidar_roi(pts_lidar, tf_lidar2tt_init, radius=2.5, height_thres=0.05):
 
 if __name__ == "__main__":
     # bag_path = "/home/fuhengdeng/test_data/hand_eye.bag"
-    bag_path = "/home/fuhengdeng/test_data/base_tt.bag"
+    # bag_path = "/home/fuhengdeng/test_data/base_tt.bag"
+    bag_path = "/home/fuhengdeng/test_data/joint_calib_2023-10-09-15-06-23.bag"
     # read_hand_eye_bag(bag_path)
     # read_intrinsic_bag(bag_path)
     # ret = read_base_tt_bag_adhoc(bag_path, "/home/fuhengdeng/data_collection_yaml/09_25/base_tt.yaml")
-    ret = read_joint_bag_adhoc(bag_path, "/home/fuhengdeng/data_collection_yaml/09_25/base_tt.yaml")
+    # ret = read_joint_bag_adhoc(bag_path, "/home/fuhengdeng/data_collection_yaml/09_25/base_tt.yaml")
+    sim = build_sim_sys()
+    ret = read_joint_bag(bag_path)
     for idx, (_, _, _, _, img_left, img_right, pc) in enumerate(ret):
-        pc = pc[::5]
+        pc = pc[::3]
         # numpy_to_pcd(pc, f"pcl-{idx}.pcd")
         kdtree = KDTree(pc)
         normals = []

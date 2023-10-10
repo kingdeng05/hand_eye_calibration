@@ -22,6 +22,7 @@ class ArucoCubeTarget(Target):
             75: np.array([0, -np.pi*3/4, 0, 0, 0, size/2]), # D 
             100: np.array([0, np.pi/4, 0, 0, 0, size/2]) # E 
         } 
+
         # filter the targets and frames based on use_ids
         if use_ids is None:
             use_ids = list(targets.keys())
@@ -59,7 +60,7 @@ class ArucoCubeTarget(Target):
             ret = target.find_3d_pts_by_id(id)
             if ret is None:
                 continue
-            tf_base2face = euler_vec_to_mat(self._frames[id], use_deg=False)
+            tf_base2face = euler_vec_to_mat(self._frames[key], use_deg=False)
             tf_face2base = np.linalg.inv(tf_base2face)
             pts_ret = transform_3d_pts(ret, tf_face2base) 
             break

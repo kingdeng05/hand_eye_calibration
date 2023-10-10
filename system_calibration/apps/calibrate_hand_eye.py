@@ -12,9 +12,10 @@ from system_calibration.IO import read_handeye_bag
 from system_calibration.backend import calib_rm_factor_graph, calib_rm2_factor_graph
 from system_calibration.backend import calibrate_dhe_factor_graph 
 from system_calibration.simulation import create_calib_gt, create_cube_t2w_gt
-from system_calibration.simulation import ArucoCubeTarget, ArucoBoardTarget
+from system_calibration.simulation.components import ArucoCubeTarget, ArucoBoardTarget
 from system_calibration.frontend import ArucoDetector
 from system_calibration.utils import calculate_reproj_error 
+
 from calibrate_intrinsic import calibrate_intrinsic, reprojection_plot
 from build_sim_sys import build_sim_sys, read_cam2ee_calib, read_cam_intrinsic
 from read_bags import read_hand_eye_bag_adhoc

@@ -7,7 +7,6 @@ from scipy.spatial import KDTree
 from matplotlib import pyplot as plt
 
 from py_kinetic_backend import Surfel3, Unit3
-from system_calibration.simulation import *
 from system_calibration.frontend import ArucoDetector
 from system_calibration.backend import solve_joint_calib, solve_joint_calib_2 
 from system_calibration.simulation.components.perception_components import is_plane_visible
@@ -18,7 +17,7 @@ from system_calibration.utils import VideoRecorder, transform_3d_pts
 
 from build_sim_sys import build_sim_sys, simulate_projection
 from build_sim_sys import read_cam_intrinsic, read_cam2ee_calib, get_img_size 
-from read_bags import read_joint_bag_adhoc
+from read_bags import read_joint_bag_adhoc, read_joint_bag
 
 VIS = False 
 
@@ -65,8 +64,9 @@ def get_2d_3d_matches(corners_2d, ids_2d, targets):
         if pts_target is not None:
             pts_3d.append(pts_target)
             pts_2d.append(corner)
-    pts_3d = np.vstack(pts_3d)
-    pts_2d = np.vstack(pts_2d)
+    if len(pts_3d):
+        pts_3d = np.vstack(pts_3d)
+        pts_2d = np.vstack(pts_2d)
     return make_pts_pair(pts_2d, pts_3d)
 
 def plot_clusters_and_connections(cluster1, cluster2):
@@ -85,7 +85,7 @@ def plot_clusters_and_connections(cluster1, cluster2):
         ax.plot([point1[0], point2[0]], [point1[1], point2[1]], [point1[2], point2[2]], 'k-')
     plt.show()
 
-def get_3d_surfel_matches(pts_3d, target, tf_lidar2target, downsample_rate=5, search_radius=0.4, pt_asso_thres=1):
+def get_3d_surfel_matches(pts_3d, target, tf_lidar2target, downsample_rate=3, search_radius=0.4, pt_asso_thres=1):
     pts_3d_downsampled = pts_3d[::downsample_rate]
     target_planes = dict() 
     for target_id in target.use_ids:
@@ -105,16 +105,16 @@ def get_3d_surfel_matches(pts_3d, target, tf_lidar2target, downsample_rate=5, se
         for target_id, plane_surfel in target_planes.items():
             target_plane_normal = plane_surfel.normal.point3()
             if normal is not None and \
-               np.linalg.norm(pt_lidar - plane_surfel.center) < pt_asso_thres:
-               #is_plane_visible(target_plane_normal, pt_lidar):
+               np.linalg.norm(pt_lidar - plane_surfel.center) < pt_asso_thres and \
+               is_plane_visible(target_plane_normal, pt_lidar):
                 # make it absolute value because the normal direction could be 180 flipped
-                normal_similarity = np.abs(normal.dot(target_plane_normal))
+                normal_similarity = normal.dot(target_plane_normal)
                 if normal_similarity > best_normal_similarity:
                     best_surfel_id = target_id
                     best_normal_similarity = normal_similarity
         if best_surfel_id is not None:
             pts.append(pt_lidar)
-            # remember to record the surfel under target base frame,  not plane nor lidar.
+            # remember to record the surfel under target base frame, not plane nor lidar.
             tf_target2plane = euler_vec_to_mat(target.frames[best_surfel_id], use_deg=False)
             plane_in_target = (np.linalg.inv(tf_target2plane)[:3, :3].dot(np.array([0, 0, 1]).reshape(-1, 1))).flatten()
             surfels.append(Surfel3(
@@ -123,8 +123,9 @@ def get_3d_surfel_matches(pts_3d, target, tf_lidar2target, downsample_rate=5, se
                 1.
             ))
     pts = np.array(pts)
-    # centers = np.array([surfel.center for surfel in surfels])
-    # plot_clusters_and_connections(pts, centers)
+    if VIS:
+        centers = np.array([surfel.center for surfel in surfels])
+        plot_clusters_and_connections(pts, transform_3d_pts(centers, np.linalg.inv(tf_lidar2target)))
     return {
         "pts": pts,
         "surfels": surfels 
@@ -159,29 +160,30 @@ def sim_bag_read():
 
 def read_bag(bag_path):
     detector = ArucoDetector(vis=VIS)
-    targets = ArucoCubeTarget(1.035)
-    tf_lidar2tt = np.linalg.inv(euler_vec_to_mat([-25., -0.3, 179.4, 0, 3.44, 2.28], use_deg=True))
     sim = build_sim_sys()
+    targets = sim.get_component("cube")
+    tf_lidar2tt = sim.get_transform("lidar", "tt") 
     tf_tt2target = sim.get_transform("tt", "cube")
     # TODO: adhoc to provide pose files
-    for msgs in read_joint_bag_adhoc(bag_path, "/home/fuhengdeng/data_collection_yaml/09_25/base_tt.yaml"):
-        corners, ids = detector.detect(msgs[0]) 
-        corners_lpc, ids_lpc = detector.detect(msgs[4]) 
-        corners_rpc, ids_rpc = detector.detect(msgs[5]) 
+    # for data in read_joint_bag_adhoc(bag_path, "/home/fuhengdeng/data_collection_yaml/09_25/base_tt.yaml"):
+    for data in read_joint_bag(bag_path):
+        corners, ids = detector.detect(data[0]) 
+        corners_lpc, ids_lpc = detector.detect(data[4]) 
+        corners_rpc, ids_rpc = detector.detect(data[5]) 
         if len(ids) == 0 and len(ids_lpc) == 0 and len(ids_rpc) == 0:
             continue
-        tt_tf = tt_reading_to_transform(msgs[3]) 
+        tt_tf = tt_reading_to_transform(data[3]) 
         tf_lidar2target = tf_tt2target @ np.linalg.inv(tt_tf) @ tf_lidar2tt
-        yield msgs[0], \
-              msgs[4], \
-              msgs[5], \
-              msgs[6], \
+        yield data[0], \
+              data[4], \
+              data[5], \
+              data[6], \
               get_2d_3d_matches(corners, ids, targets), \
               get_2d_3d_matches(corners_lpc, ids_lpc, targets), \
               get_2d_3d_matches(corners_rpc, ids_rpc, targets), \
-              get_3d_surfel_matches(msgs[6], targets, tf_lidar2target), \
-              msgs[1], \
-              track_reading_to_transform(msgs[2]), \
+              get_3d_surfel_matches(data[6], targets, tf_lidar2target), \
+              data[1], \
+              track_reading_to_transform(data[2]), \
               tt_tf
 
 def perturb_pose3(pose_mat, var, current=True):
@@ -240,7 +242,7 @@ def calibrate_joint_calib(bag_path=None, perturb=False, debug=False):
     lpc_recorder = VideoRecorder(2, filename="lpc.mp4")
     rpc_recorder = VideoRecorder(2, filename="rpc.mp4")
 
-    for _, (_, _, _, pts_rc, pts_lpc, pts_rpc, hand_pose, track_tf, tt_tf, _) in enumerate(get_data(bag_path)):
+    for _, (_, _, _, _, pts_rc, pts_lpc, pts_rpc, _, hand_pose, track_tf, tt_tf) in enumerate(get_data(bag_path)):
         track_tfs.append(track_tf)
         tt_tfs.append(tt_tf)
         pts_rc_all.append(pts_rc)
@@ -276,7 +278,7 @@ def calibrate_joint_calib(bag_path=None, perturb=False, debug=False):
     pts_2d_rc, pts_proj_rc = [], [] 
     pts_2d_lpc, pts_proj_lpc = [], []
     pts_2d_rpc, pts_proj_rpc = [], []
-    for idx, ((img_rc, img_lpc, img_rpc, pts_rc, pts_lpc, pts_rpc, ee2base_meas, track_tf_meas, tt_tf_meas, _), track_tf, tt_tf) in enumerate(zip(get_data(bag_path), ret["track_tfs"], ret["tt_tfs"])):
+    for idx, ((img_rc, img_lpc, img_rpc, _, pts_rc, pts_lpc, pts_rpc, _, ee2base_meas, track_tf_meas, tt_tf_meas), track_tf, tt_tf) in enumerate(zip(get_data(bag_path), ret["track_tfs"], ret["tt_tfs"])):
         tf_target2tt_i = tt_tf @ ret["target2tt_0"] 
 
         # project on the robot camera
@@ -414,6 +416,10 @@ def calibrate_joint_calib_w_lidar(bag_path=None, perturb=False, debug=False):
         pts_lpc_all.append(pts_lpc)
         pts_rpc_all.append(pts_rpc)
         lidar_features.append(lidar_feature)
+        # print(len(pts_rc["2d"]), len(pts_rc["3d"]))
+        # print(len(pts_lpc["2d"]), len(pts_lpc["3d"]))
+        # print(len(pts_rpc["2d"]), len(pts_rpc["3d"]))
+        # print(len(lidar_feature["pts"]), len(lidar_feature["surfels"]))
     initials["ee2base"] = hand_pose # note that the hand is not moving during calibration
 
     # perturbation test
@@ -483,6 +489,8 @@ def calibrate_joint_calib_w_lidar(bag_path=None, perturb=False, debug=False):
         img_lidar = lidar2cam_proj(pts_lidar, img_lpc, tf_lidar2cam, tf_lidar2cam_init, initials["intrinsic_lpc"], debug=debug)
         lidar_recorder.add_frame(img_lidar, text=f"frame-{idx}")
 
+    print(ret["lidar2tt"])
+
     print("robot camera statistics:")
     print_reproj_stats(pts_2d_rc, pts_proj_rc)
     print("left primary camera statistics:")
@@ -493,4 +501,6 @@ def calibrate_joint_calib_w_lidar(bag_path=None, perturb=False, debug=False):
 if __name__ == "__main__":
     # calibrate_joint_calib(bag_path=None, perturb=True, debug=True)
     # calibrate_joint_calib(bag_path="/home/fuhengdeng/test_data/base_tt.bag", perturb=False, debug=False)
-    calibrate_joint_calib_w_lidar(bag_path="/home/fuhengdeng/test_data/base_tt.bag", perturb=False, debug=False)
+    # calibrate_joint_calib(bag_path="/home/fuhengdeng/test_data/joint_calib_2023-10-09-15-06-23.bag", perturb=False, debug=False)
+    # calibrate_joint_calib_w_lidar(bag_path="/home/fuhengdeng/test_data/base_tt.bag", perturb=False, debug=False)
+    calibrate_joint_calib_w_lidar(bag_path="/home/fuhengdeng/test_data/joint_calib_2023-10-09-15-06-23.bag", perturb=False, debug=False)

@@ -9,7 +9,8 @@ from collections import defaultdict
 from py_kinetic_backend import Pose3, Rot3
 
 from system_calibration.frontend import ArucoDetector
-from system_calibration.simulation import ArucoBoardTarget, create_intrinsic_distortion 
+from system_calibration.simulation import create_intrinsic_distortion 
+from system_calibration.simulation.components import ArucoBoardTarget 
 from system_calibration.utils import calculate_reproj_error
 from system_calibration.IO import read_handeye_bag
 from system_calibration.backend import solve_intrinsic_rational, IntrinsicCailbrator

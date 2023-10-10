@@ -4,8 +4,7 @@ import cv2 as cv
 
 from system_calibration.simulation import SystemSimulator
 from system_calibration.simulation.components import Turntable, Track, Robot, Camera, LiDAR
-from system_calibration.simulation.components import ArucoCubeTarget, MovableComponent
-from system_calibration.simulation.components import Target
+from system_calibration.simulation.components import ArucoCubeTarget, ArucoCubeTargetV2
 from system_calibration.utils import euler_vec_to_mat, create_camera, draw_pts_on_img
 
 np.set_printoptions(3, suppress=True)
@@ -48,11 +47,12 @@ def build_sim_sys():
     sim.add_component("lpc", Camera(camera, get_img_size(tower=True)), "tt", get_towercam2tt_calib(left=True), False, False)
     camera = create_camera(read_cam_intrinsic(file_name=".right_primary.yaml"), model="Cal3Rational") 
     sim.add_component("rpc", Camera(camera, get_img_size(tower=True)), "tt", get_towercam2tt_calib(left=False), False, False)
-    sim.add_component("lidar", LiDAR(), "tt", np.linalg.inv(euler_vec_to_mat([-25., -0.3, 179.4, 0, 3.44, 2.28], use_deg=True)), False, False)
+    sim.add_component("lidar", LiDAR(), "tt", euler_vec_to_mat([-25., -0.3, 179.4, 0, 3.44, 2.28], use_deg=True), False, False)
     # add target components
-    tf_target2tt_0 = euler_vec_to_mat([-90, 0, 90, 1, 0, 0.525], use_deg=True)
-    # sim.add_component("cube", ArucoCubeTarget(1.035, use_ids=(25, 50, 75, 100)), "tt", tf_target2tt_0, False, True)
-    sim.add_component("cube", ArucoCubeTarget(1.035), "tt", tf_target2tt_0, False, True)
+    # tf_target2tt_0 = euler_vec_to_mat([-90, 0, 90, 1, 0, 0.525], use_deg=True)
+    # sim.add_component("cube", ArucoCubeTarget(1.035), "tt", tf_target2tt_0, False, True)
+    tf_target2tt_0 = euler_vec_to_mat([-90, 0, 90, 1.5, 0, 0.333738], use_deg=True)
+    sim.add_component("cube", ArucoCubeTargetV2(0.6561), "tt", tf_target2tt_0, False, True)
     return sim
 
 def simulate_projection(pts_2d, text=""):
