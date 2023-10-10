@@ -11,7 +11,6 @@ from py_kinetic_backend import PinholeCameraCal3Rational, Cal3Rational
 from system_calibration.IO import read_handeye_bag
 from system_calibration.backend import calib_rm_factor_graph, calib_rm2_factor_graph
 from system_calibration.backend import calibrate_dhe_factor_graph 
-from system_calibration.simulation import create_calib_gt, create_cube_t2w_gt
 from system_calibration.simulation.components import ArucoCubeTarget, ArucoBoardTarget
 from system_calibration.frontend import ArucoDetector
 from system_calibration.utils import calculate_reproj_error 
@@ -43,12 +42,13 @@ def tf_to_vec(tf, use_degree=True):
     return np.array(rot_vec + trans_vec) 
 
 def calibrate_hand_eye_rm(bag_path):
-    calib_init = create_calib_gt()
-    t2w_init = create_cube_t2w_gt()
+    sim = build_sim_sys()
+    calib_init = read_cam2ee_calib()
+    t2w_init = sim.get_transform("cube", "robot") 
+    intrinsic = read_cam_intrinsic()
     # intrinsic = np.array([1742.399, 1741.498, 0, 1030.966, 782.361, -0.28, 0.15, -0.002, -0.001])
     # intrinsic = np.array([1737.045, 1736.33, 0, 1021.933, 781.133, -0.282, 0.146, -0.002, 0.])
     # intrinsic = np.array([1742.295, 1741.466, 0, 1031.074, 782.305, -0.28, 0.15, -0.001, -0.001])
-    intrinsic = calibrate_intrinsic(bag_path)
 
     # target = ArucoBoardTarget(5, 5, 0.166, 0.033, 100)
     target = ArucoCubeTarget(1.035)
@@ -149,8 +149,8 @@ def calibrate_hand_eye_rm(bag_path):
     return calib_ret, poses_ret 
 
 def calibrate_hand_eye_dhe(bag_path):
-    calib_init = create_calib_gt()
-    intrinsic = calibrate_intrinsic(bag_path)
+    calib_init = read_cam2ee_calib()
+    intrinsic = read_cam_intrinsic()
     target = ArucoBoardTarget(5, 5, 0.166, 0.033, 100)
     detector = ArucoDetector(vis=False)
     hand_poses = []

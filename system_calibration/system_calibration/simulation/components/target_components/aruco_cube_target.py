@@ -29,6 +29,7 @@ class ArucoCubeTarget(Target):
         self._targets = {use_id: targets[use_id] for use_id in use_ids}
         self._frames = {use_id: frames[use_id] for use_id in use_ids}
         self._use_ids = use_ids
+
         super().__init__()
 
     @property

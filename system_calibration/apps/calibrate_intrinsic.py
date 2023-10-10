@@ -9,13 +9,13 @@ from collections import defaultdict
 from py_kinetic_backend import Pose3, Rot3
 
 from system_calibration.frontend import ArucoDetector
-from system_calibration.simulation import create_intrinsic_distortion 
 from system_calibration.simulation.components import ArucoBoardTarget 
 from system_calibration.utils import calculate_reproj_error
 from system_calibration.IO import read_handeye_bag
 from system_calibration.backend import solve_intrinsic_rational, IntrinsicCailbrator
 
 from read_bags import read_intrinsic_bag
+from build_sim_sys import read_cam_intrinsic
 
 np.set_printoptions(precision=3, suppress=True)
 
@@ -186,7 +186,7 @@ def calibrate_intrinsic_rational(bag_path):
     detector = ArucoDetector(vis=False)
     pts_3d_all, pts_2d_all = [], []
     cam_poses_all = []
-    intr_vec = create_intrinsic_distortion(focal_length="4mm", distortion_model="Cal3DS2")
+    intr_vec = read_cam_intrinsic() 
     for _, (img, _, _, _, _) in enumerate(read_handeye_bag(bag_path)):
         # 3d pts (n, 3), 2d pts (n, 1, 2)
         corners, ids = detector.detect(img)
