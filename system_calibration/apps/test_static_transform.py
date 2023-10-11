@@ -1,7 +1,7 @@
 import numpy as np
 import yaml
 
-ANGLE_THRES  = 1 
+ANGLE_THRES  = 0.5 
 TRANS_THRES  = 0.1 
 
 def angle_diff(angle1, angle2):
