@@ -1,10 +1,12 @@
 import os
-import yaml
+import json
 import numpy as np
 import cv2 as cv
 from copy import deepcopy 
 from scipy.spatial import KDTree
 from matplotlib import pyplot as plt
+from collections import OrderedDict
+from ruamel.yaml import YAML
 
 from py_kinetic_backend import Surfel3, Unit3
 from system_calibration.frontend import ArucoDetector
@@ -21,8 +23,41 @@ from read_bags import read_joint_bag_adhoc, read_joint_bag
 
 VIS = False 
 
+yaml = YAML()
 np.random.seed(5)
 np.set_printoptions(precision=3, suppress=True)
+
+def dump_result_to_kinetic_yaml(ret, file_path="static_transforms.yaml"):
+    def update_calib(cfg, tf, source, target):
+        euler_vec = mat_to_euler_vec(tf)
+        euler_names = ["roll", "pitch", "yaw", "x_T", "y_T", "z_T"]
+        for key in cfg.keys():
+            if "_to_" not in key:
+                continue
+            target_str, source_str = key.split("_to_")
+            if source in source_str and target in target_str:
+                for n in euler_names:
+                    if n in source_str:
+                        cfg[key] = euler_vec[euler_names.index(n)]
+    with open("stereo_left.json") as f:
+        cfg = json.load(f)
+        tf_left_second_to_primary = np.array(cfg["calibration"][1]["pose"]["data"]).reshape(4, 4)
+    with open("stereo_right.json") as f:
+        cfg = json.load(f)
+        tf_right_second_to_primary = np.array(cfg["calibration"][1]["pose"]["data"]).reshape(4, 4)
+    with open(file_path) as f:
+        cfg = yaml.load(f)
+        cfg = OrderedDict(cfg)
+        update_calib(cfg, ret["lidar2tt"], "tt", "lidar")
+        update_calib(cfg, ret["base2track"], "track_base", "track_frame")
+        update_calib(cfg, ret["track2tt"], "track", "tt")
+        update_calib(cfg, ret["lpc2tt"], "camera_left_primary", "tt")
+        update_calib(cfg, ret["rpc2tt"], "camera_right_primary", "tt")
+        update_calib(cfg, ret["lpc2tt"] @ tf_left_second_to_primary, "camera_left_secondary", "tt")
+        update_calib(cfg, ret["rpc2tt"] @ tf_right_second_to_primary, "camera_right_secondary", "tt")
+    cfg = {k: float(v) if isinstance(v, float) else v for k, v in cfg.items()}
+    with open(file_path, "w") as f:
+        yaml.dump(cfg, f) 
 
 def print_reproj_stats(pts_2d, pts_proj):
     local_re = []
@@ -318,17 +353,6 @@ def calibrate_joint_calib(bag_path=None, perturb=False, debug=False):
     print("right primary camera statistics:")
     print_reproj_stats(pts_2d_rpc, pts_proj_rpc)
 
-    # dump result
-    # if not debug:
-    #     with open(".base2track.yaml", "w+") as f:
-    #         yaml.safe_dump({
-    #             "transformation": ret.tolist()
-    #         }, f, default_flow_style=False)
-    #     with open(".track2tt.yaml", "w+") as f:
-    #         yaml.safe_dump({
-    #             "transformation": tf_track2tt.tolist()
-    #         }, f, default_flow_style=False)
-
 def evaluate_reproj(img_vis, pts_3d, pts_2d, tf_cam2target, tf_cam2tt, tf_cam2tt_init, intrinsic, tt_tf, track_tf, tt_meas, track_meas, debug):
     pts_proj = transfer_3d_pts_to_img(pts_3d, tf_cam2target, intrinsic)
     img_vis = visualize_reprojection(img_vis, pts_2d, pts_proj) 
@@ -409,17 +433,18 @@ def calibrate_joint_calib_w_lidar(bag_path=None, perturb=False, debug=False):
     rpc_recorder = VideoRecorder(2, filename="rpc.mp4")
     lidar_recorder = VideoRecorder(2, filename="lidar.mp4")
 
-    for _, (_, _, _, _, pts_rc, pts_lpc, pts_rpc, lidar_feature, hand_pose, track_tf, tt_tf) in enumerate(get_data(bag_path)):
+    for idx, (_, _, _, _, pts_rc, pts_lpc, pts_rpc, lidar_feature, hand_pose, track_tf, tt_tf) in enumerate(get_data(bag_path)):
         track_tfs.append(track_tf)
         tt_tfs.append(tt_tf)
         pts_rc_all.append(pts_rc)
         pts_lpc_all.append(pts_lpc)
         pts_rpc_all.append(pts_rpc)
         lidar_features.append(lidar_feature)
-        # print(len(pts_rc["2d"]), len(pts_rc["3d"]))
-        # print(len(pts_lpc["2d"]), len(pts_lpc["3d"]))
-        # print(len(pts_rpc["2d"]), len(pts_rpc["3d"]))
-        # print(len(lidar_feature["pts"]), len(lidar_feature["surfels"]))
+        print(f"frame {idx}")
+        print(f"    fetching {len(pts_rc['2d'])} features for robot camera")
+        print(f"    fetching {len(pts_lpc['2d'])} features for left primary camera")
+        print(f"    fetching {len(pts_rpc['2d'])} features for right primary camera")
+        print(f"    fetching {len(lidar_feature['pts'])} features for lidar")
     initials["ee2base"] = hand_pose # note that the hand is not moving during calibration
 
     # perturbation test
@@ -497,6 +522,9 @@ def calibrate_joint_calib_w_lidar(bag_path=None, perturb=False, debug=False):
     print_reproj_stats(pts_2d_lpc, pts_proj_lpc)
     print("right primary camera statistics:")
     print_reproj_stats(pts_2d_rpc, pts_proj_rpc)
+
+    # save result to yaml file that's interpretable by kinetic software
+    dump_result_to_kinetic_yaml(ret)
 
 if __name__ == "__main__":
     # calibrate_joint_calib(bag_path=None, perturb=True, debug=True)
