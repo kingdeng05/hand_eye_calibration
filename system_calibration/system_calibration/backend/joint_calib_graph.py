@@ -196,7 +196,7 @@ def solve_joint_calib_2(pts_robot_cam, pts_left_primary, pts_right_primary, lida
     hand_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]) # from robot manual 
     track_prior_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-8, 1e-3, 1e-8, 1e-8]) # large noise in x 
     tt_prior_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-3, 1e-8, 1e-8, 1e-8]) # should only have yaw
-    target2tt_prior_noise = Diagonal.sigmas([1e-5, 1e-1, 1e-5, 1e-1, 1e-4, 1e-1]) # should have mainly roll and y and z are unknown. 
+    target2tt_prior_noise = Diagonal.sigmas([1e-5, 1, 1e-5, 1e-1, 1e-4, 1e-1]) # should have mainly roll and y and z are unknown. 
     track_between_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8]) # should enforce the track state the same
 
     # set up initial values for time-invariant variables
