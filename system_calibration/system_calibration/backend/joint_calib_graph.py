@@ -166,7 +166,7 @@ def solve_joint_calib(pts_robot_cam, pts_left_primary, pts_right_primary, track_
     }
 
 
-def solve_joint_calib_2(pts_robot_cam, pts_left_primary, pts_right_primary, lidar_features, track_tfs, tt_tfs, initials):
+def solve_joint_calib_2(pts_robot_cam, pts_left_primary, pts_right_primary, pts_left_sec, pts_right_sec, lidar_features, track_tfs, tt_tfs, initials):
     # set up the keys
     track2tt_key = symbol('x', 0)
     base2track_key = symbol('x', 1)
@@ -175,6 +175,8 @@ def solve_joint_calib_2(pts_robot_cam, pts_left_primary, pts_right_primary, lida
     lpc2tt_key = symbol('x', 4)
     rpc2tt_key = symbol('x', 5)
     lidar2tt_key = symbol('x', 6)
+    lsc2tt_key = symbol('x', 7)
+    rsc2tt_key = symbol('x', 8)
     track_tf_keys = []
     tt_tf_keys = []
 
@@ -214,6 +216,8 @@ def solve_joint_calib_2(pts_robot_cam, pts_left_primary, pts_right_primary, lida
     values.insertPose3(base2track_key, Pose3(initials["base2track"]))
     values.insertPose3(lpc2tt_key, Pose3(initials["lpc2tt"]))
     values.insertPose3(rpc2tt_key, Pose3(initials["rpc2tt"]))
+    values.insertPose3(lsc2tt_key, Pose3(initials["lsc2tt"]))
+    values.insertPose3(rsc2tt_key, Pose3(initials["rsc2tt"]))
     values.insertPose3(lidar2tt_key, Pose3(initials["lidar2tt"]))
 
     graph = NonlinearFactorGraph()
@@ -232,7 +236,7 @@ def solve_joint_calib_2(pts_robot_cam, pts_left_primary, pts_right_primary, lida
     graph.add(PriorFactorPose3(base2track_key, Pose3(initials["base2track"]), base2tr_prior_noise))
     names.append(f"base2t")
 
-    for idx, (pts, pts_lpc, pts_rpc, lidar_feature, track_tf, tt_tf) in enumerate(zip(pts_robot_cam, pts_left_primary, pts_right_primary, lidar_features, track_tfs, tt_tfs)):
+    for idx, (pts, pts_lpc, pts_rpc, pts_lsc, pts_rsc, lidar_feature, track_tf, tt_tf) in enumerate(zip(pts_robot_cam, pts_left_primary, pts_right_primary, pts_left_sec, pts_right_sec, lidar_features, track_tfs, tt_tfs)):
         # add keys
         track_tf_keys.append(symbol('a', idx))
         tt_tf_keys.append(symbol('b', idx))
@@ -284,7 +288,7 @@ def solve_joint_calib_2(pts_robot_cam, pts_left_primary, pts_right_primary, lida
             graph.add(proj_factor)
             names.append(f"proj_{pt_idx}")
 
-        # add left tower camera projection factor
+        # add left primary camera projection factor
         for pt_idx, (pt_2d, pt_3d) in enumerate(zip(pts_lpc["2d"], pts_lpc["3d"])):
             proj_factor = Cam2TtProjectionFactorCal3Rational(
                 lpc2tt_key,
@@ -298,7 +302,21 @@ def solve_joint_calib_2(pts_robot_cam, pts_left_primary, pts_right_primary, lida
             graph.add(proj_factor)
             names.append(f"lpc_proj_{pt_idx}")
 
-        # add right tower camera projection factor
+        # add left secondary camera projection factor
+        for pt_idx, (pt_2d, pt_3d) in enumerate(zip(pts_lsc["2d"], pts_lsc["3d"])):
+            proj_factor = Cam2TtProjectionFactorCal3Rational(
+                lsc2tt_key,
+                target2tt_key,
+                tt_tf_keys[-1],
+                Cal3Rational(initials["intrinsic_lsc"]),
+                pt_3d,
+                pt_2d,
+                proj_noise,
+            )
+            graph.add(proj_factor)
+            names.append(f"lsc_proj_{pt_idx}")
+
+        # add right primary camera projection factor
         for pt_idx, (pt_2d, pt_3d) in enumerate(zip(pts_rpc["2d"], pts_rpc["3d"])):
             proj_factor = Cam2TtProjectionFactorCal3Rational(
                 rpc2tt_key,
@@ -311,6 +329,20 @@ def solve_joint_calib_2(pts_robot_cam, pts_left_primary, pts_right_primary, lida
             )
             graph.add(proj_factor)
             names.append(f"rpc_proj_{pt_idx}")
+
+        # add right secondary camera projection factor
+        for pt_idx, (pt_2d, pt_3d) in enumerate(zip(pts_rsc["2d"], pts_rsc["3d"])):
+            proj_factor = Cam2TtProjectionFactorCal3Rational(
+                rsc2tt_key,
+                target2tt_key,
+                tt_tf_keys[-1],
+                Cal3Rational(initials["intrinsic_rsc"]),
+                pt_3d,
+                pt_2d,
+                proj_noise,
+            )
+            graph.add(proj_factor)
+            names.append(f"rsc_proj_{pt_idx}")
 
         # add lidar feature (pt + surfel) 
         for feature_idx, (pt, surfel) in enumerate(zip(lidar_feature["pts"], lidar_feature["surfels"])):
@@ -349,6 +381,8 @@ def solve_joint_calib_2(pts_robot_cam, pts_left_primary, pts_right_primary, lida
         "target2tt_0": result.atPose3(target2tt_key).matrix(),
         "lpc2tt": result.atPose3(lpc2tt_key).matrix(),
         "rpc2tt": result.atPose3(rpc2tt_key).matrix(),
+        "lsc2tt": result.atPose3(lsc2tt_key).matrix(),
+        "rsc2tt": result.atPose3(rsc2tt_key).matrix(),
         "lidar2tt": result.atPose3(lidar2tt_key).matrix(),
         "track_tfs": [result.atPose3(track_tf_key).matrix() for track_tf_key in track_tf_keys],
         "tt_tfs": [result.atPose3(tt_tf_key).matrix() for tt_tf_key in tt_tf_keys]
