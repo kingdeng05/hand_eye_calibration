@@ -15,7 +15,7 @@ from system_calibration.IO import read_handeye_bag
 from system_calibration.backend import solve_intrinsic_rational, IntrinsicCailbrator
 
 from read_bags import read_intrinsic_bag
-from build_sim_sys import read_cam_intrinsic
+from build_sim_sys import read_cam_intrinsic, build_sim_sys
 
 np.set_printoptions(precision=3, suppress=True)
 
@@ -100,12 +100,20 @@ def calibrate_intrinsic(bag_path, saved_path=".calibration.yaml", debug=False):
         return np.array(yaml.safe_load(open(saved_path))["intrinsic_vec"])
 
     targets = {
-        0: ArucoBoardTarget(5, 5, 0.166, 0.033, 0),
-        25: ArucoBoardTarget(5, 5, 0.166, 0.033, 25),
-        50: ArucoBoardTarget(5, 5, 0.166, 0.033, 50),
-        75: ArucoBoardTarget(5, 5, 0.166, 0.033, 75),
-        100: ArucoBoardTarget(5, 5, 0.166, 0.033, 100)
+        0: ArucoBoardTarget(3, 3, 0.166, 0.033, 0),
+        9: ArucoBoardTarget(3, 3, 0.166, 0.033, 9),
+        18: ArucoBoardTarget(3, 3, 0.166, 0.033, 18),
+        27: ArucoBoardTarget(3, 3, 0.166, 0.033, 27),
+        36: ArucoBoardTarget(3, 3, 0.166, 0.033, 36)
     }
+    # targets = {
+    #     0: ArucoBoardTarget(5, 5, 0.166, 0.033, 0),
+    #     25: ArucoBoardTarget(5, 5, 0.166, 0.033, 25),
+    #     50: ArucoBoardTarget(5, 5, 0.166, 0.033, 50),
+    #     75: ArucoBoardTarget(5, 5, 0.166, 0.033, 75),
+    #     100: ArucoBoardTarget(5, 5, 0.166, 0.033, 100)
+    # }
+
     detector = ArucoDetector(vis=False)
     pts_3d_all, pts_2d_all = [], []
     views_cnt = defaultdict(int) 
@@ -118,8 +126,8 @@ def calibrate_intrinsic(bag_path, saved_path=".calibration.yaml", debug=False):
             for corner, id in zip(corners, ids):
                 ret = target.find_3d_pts_by_id(id)
                 if ret is not None: 
-                    pts_3d[target_id].append([ret[0]]) 
-                    pts_2d[target_id].append([corner[0]])
+                    pts_3d[target_id].append(ret) 
+                    pts_2d[target_id].append(corner)
         for key, pts_3d_target in pts_3d.items():
             if len(pts_3d_target) >= 3:
                 pts_3d_target = np.vstack(pts_3d_target, dtype=np.float32)
@@ -247,7 +255,9 @@ def calibrate_intrinsic_rational(bag_path):
 
 
 if __name__ == "__main__":
-    bag_name = "/home/fuhengdeng/test_data/hand_eye.bag"
+    # bag_name = "/home/fuhengdeng/test_data/hand_eye.bag"
+    # bag_name = "/home/fuhengdeng/test_data/hand_eye_new.bag"
+    bag_name = "/home/fuhengdeng/test_data/hand_eye_new_cube_more_angle.bag"
     # bag_name = "/home/fuhengdeng/fuheng.bag"
     calibrate_intrinsic(bag_name, debug=False)
     # calibrate_intrinsic_rational(bag_name)

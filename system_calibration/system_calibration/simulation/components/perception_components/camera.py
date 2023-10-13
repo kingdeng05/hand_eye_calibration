@@ -3,14 +3,23 @@ import numpy as np
 from .perception_component import PerceptionComponent
 from ..target_components import ArucoCubeTarget, ArucoBoardTarget, CheckerboardTarget 
 from .utils import is_plane_visible 
-from ....utils import euler_vec_to_mat, transform_3d_pts
+from ....utils import euler_vec_to_mat, transform_3d_pts, create_camera
 
 
 class Camera(PerceptionComponent):
-    def __init__(self, camera, img_size):
-        self._camera = camera
+    def __init__(self, intrinsic, img_size, model="Cal3Rational"):
+        self._camera = create_camera(intrinsic, model=model) 
         self._img_size = img_size
+        self._intrinsic = intrinsic
         super().__init__()
+
+    @property
+    def intrinsic(self):
+        return self._intrinsic
+
+    @property
+    def img_size(self):
+        return self._img_size
 
     """
     Capture the image of target

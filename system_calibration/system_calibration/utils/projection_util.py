@@ -35,8 +35,13 @@ def visualize_reprojection(img, pts_2d, pts_proj, resize_ratio=1):
         cv.circle(img_copy, tuple(pt_proj), 4, (0, 0, 255))
         cv.circle(img_copy, tuple(pt_2d), 4, (0, 255, 0))
         cv.line(img_copy, tuple(pt_proj), tuple(pt_2d), (255, 0, 0), 3)
-    height, width = img_copy.shape[:2]
-    img_copy = cv.resize(img_copy, (int(width * resize_ratio), int(height * resize_ratio)))
+    img_copy = resize_img(img_copy, ratio=resize_ratio)
     return img_copy
+
+def resize_img(img, ratio=1):
+    height, width = img.shape[:2]
+    img = cv.resize(img, (int(width * ratio), int(height * ratio)))
+    return img 
+    
          
     

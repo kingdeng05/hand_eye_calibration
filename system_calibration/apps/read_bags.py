@@ -13,23 +13,29 @@ from build_sim_sys import build_sim_sys
 
 def read_intrinsic_bag(bag_name):
     topics = [
-        "/robot_0/robot_base/end_effector_pose_stopped",
-        "/camera/image_color/compressed",
+        # "/robot_0/robot_base/end_effector_pose_stopped",
+        "/tt/system_stopped",
+        # "/camera/image_color/compressed",
+        "/camera/image_raw/compressed",
     ]
     reader = TopicTriggerBagReader(bag_name, *topics)
     for msgs in reader.read():
-        img = msg_to_img(msgs[1][1])
+        img = msg_to_img(msgs[1][1], RGB=False)
         yield img
 
 def read_hand_eye_bag(bag_name):
     topics = [
-        "/robot_0/robot_base/end_effector_pose_stopped",
-        "/camera/image_color/compressed",
+        # "/robot_0/robot_base/end_effector_pose_stopped",
+        "/tt/system_stopped",
+        "/camera/image_raw/compressed",
         "/robot_0/robot_base/end_effector_pose",
     ]
     reader = TopicTriggerBagReader(bag_name, *topics)
-    for msgs in reader.read():
-        yield msg_to_img(msgs[1][1]), pose_msg_to_tf(msgs[2][1]) 
+    for idx, msgs in enumerate(reader.read()):
+        # only the first 30 frames are in the same target
+        # if idx < 30:
+        if idx >= 30:
+            yield msg_to_img(msgs[1][1], RGB=False), pose_msg_to_tf(msgs[2][1].pose) 
 
 # TODO: this is get the robot pose from pose yaml
 def read_hand_eye_bag_adhoc(bag_name, pose_yaml):
@@ -93,7 +99,8 @@ def read_base_tt_bag_adhoc(bag_name, pose_yaml):
 def read_joint_bag(bag_name):
     sim = build_sim_sys()
     topics = [
-        "/tt/stopped",
+        "/tt/system_stopped",
+        # "/tt/stopped",
         "/camera/image_raw/compressed",
         "/robot_0/robot_base/end_effector_pose",
         "/track_0/position_actual",
@@ -104,8 +111,6 @@ def read_joint_bag(bag_name):
     ]
     reader = TopicTriggerBagReader(bag_name, *topics)
     for idx, msgs in enumerate(reader.read()):
-        if idx == 0:
-            continue
         lidar_pts = crop_lidar_roi(pc2_msg_to_array(msgs[7][1]), sim.calibration["lidar"]["tt"])
         yield msg_to_img(msgs[1][1], RGB=False), pose_msg_to_tf(msgs[2][1].pose), msgs[3][1].data, msgs[4][1].data, msg_to_img(msgs[5][1], RGB=False), \
               msg_to_img(msgs[6][1], RGB=False), lidar_pts 

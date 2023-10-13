@@ -65,11 +65,10 @@ def calib_rm_factor_graph(calib_init, t2w_init, k_init, hand_poses, pts):
 def calib_rm2_factor_graph(calib_init, t2w_init, k_init, cam_poses, hand_poses, pts):
     graph = NonlinearFactorGraph()
     # noise model in pixel
-    rm_noise_model = Diagonal.sigmas([1., 1.])
-    # rm_noise_model = RobustNoiseModel.create(
-    #     CauchyNoiseModel.create(3.),
-    #     Diagonal.sigmas([1., 1.])
-    # ) 
+    rm_noise_model = RobustNoiseModel.create(
+        CauchyNoiseModel.create(2.),
+        Diagonal.sigmas([1., 1.])
+    ) 
 
     # set up symbols 
     calib_key = symbol("x", 0)
@@ -82,7 +81,8 @@ def calib_rm2_factor_graph(calib_init, t2w_init, k_init, cam_poses, hand_poses, 
     initials.insertPose3(w2t_key, Pose3(np.linalg.inv(t2w_init)))
     initials.insertCal3Rational(k_key, Cal3Rational(k_init))
 
-    hand_meas_noise_model = Diagonal.sigmas([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4])
+    # hand_meas_noise_model = Diagonal.sigmas([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4])
+    hand_meas_noise_model = Diagonal.sigmas([1e-2, 1e-2, 1e-2, 1e-3, 1e-3, 1e-3])
     t2e_keys = []
     for i, (cam_pose, hand_pose, pts) in enumerate(zip(cam_poses, hand_poses, pts)):
         t2e_key = symbol("p", i)

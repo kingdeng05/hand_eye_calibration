@@ -6,7 +6,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from system_calibration.utils import euler_vec_to_mat, mat_to_quaternion 
 from system_calibration.simulation import MoveGroup
-from system_calibration.simulation.components import ArucoCubeTarget
+from system_calibration.simulation.components import ArucoCubeTarget, ArucoCubeTargetV2
 
 from build_sim_sys import build_sim_sys, simulate_projection 
 
@@ -15,8 +15,8 @@ np.random.seed(5)
 RANGE = np.array([
     np.deg2rad([-60, 60]),
     np.deg2rad([-30, 60]),
-    np.deg2rad([-60, 60]),
-    [0.4, 0.8],
+    np.deg2rad([-30, 30]),
+    [0.8, 1.5],
     [-1, 1],
     [0.5, 1.5],
 ])
@@ -118,19 +118,20 @@ def get_random_euler_vec():
 def traj_gen_handeye(vis=False):
     # build simulation system
     sim = build_sim_sys()
-    pts_cnt_side = len(ArucoCubeTarget(1.035, use_ids=(25,)).get_pts())
+    pts_cnt_side = len(sim("cube").get_pts()) / 5 * 2 # get one side's point
     pose_validator = MoveGroup()
 
     ret = []
     track_val = 0 
     sim.move("track", track_val)
-    for _, tt_angle in enumerate(np.linspace(0, 2 * np.pi, 7)[:-1]):
+    angle = np.deg2rad([0, 60, 120, 240, 300])
+    for _, tt_angle in enumerate(angle):
         sim.move("tt", tt_angle) 
         tf = sim.get_transform("cube", "robot")
         yaw = np.arctan2(tf[1, 3], tf[0, 3])
         cnt = 0
         poses = []
-        while cnt < 20:
+        while cnt < 30:
             robot_vec = np.array(get_random_euler_vec()) + np.array([0, 0, yaw, 0, 0, 0]) 
             sim.move("robot", robot_vec)
             try:
@@ -154,20 +155,23 @@ def traj_gen_handeye(vis=False):
             })
         if vis:
             vis_traj(poses)
-    robot_init_pose = [0, 0, 0, 1, 0, 1]
+    robot_init_pose = [0, np.rad2deg(20), 0, 1, 0, 1]
     quat_init = mat_to_quaternion(euler_vec_to_mat(robot_init_pose))
     ret.append({
         "tt_angle": 2 * np.pi,
-        "track": 0,
+        "track": 0.5,
         "robot": quat_init 
     }) 
     return ret
 
 def traj_gen_base2tt(vis=False):
     sim = build_sim_sys()
-    robot_pose = [0, 0, 0, 0.6, 0, 0.8]
+    robot_pose = [0, np.deg2rad(20), 0, 1, 0, 1]
     sim.move("robot", robot_pose)
     quat = mat_to_quaternion(euler_vec_to_mat(robot_pose))
+    pose_validator = MoveGroup()
+    if not pose_validator.is_pose_valid(quat):
+        raise ValueError("Pose can't be executed!")
     ret = []
     for tr in [0.5, 1, 2]: 
         sim.move("track", tr)
@@ -179,7 +183,7 @@ def traj_gen_base2tt(vis=False):
             ret.append({
                 "tt_angle": v,
                 "track": tr,
-                "robot": quat 
+                "robot": quat
             })
     return ret
 
@@ -189,7 +193,8 @@ def generate_pose_yaml(ret, name):
         poses_fmt[i] = {
             'tt_angle': float(r["tt_angle"]),
             'track_position': float(r["track"]),
-            'robot_planning_pose': r["robot"] + ["base_link", "link_kinetic", "autel_small_target"]
+            'robot_planning_pose': r["robot"] + ["base_link", "link_kinetic", "autel_small_target"],
+            "override": True 
         }
     with open(name, 'w') as outfile:
         yaml.dump(poses_fmt, outfile)
@@ -198,4 +203,4 @@ def generate_pose_yaml(ret, name):
 
 if __name__ == "__main__":
     generate_pose_yaml(traj_gen_handeye(vis=False), "hand_eye.yaml") 
-    generate_pose_yaml(traj_gen_base2tt(vis=False), "base_tt.yaml") 
+    # generate_pose_yaml(traj_gen_base2tt(vis=False), "base_tt.yaml") 

@@ -8,16 +8,15 @@ from matplotlib import pyplot as plt
 
 from py_kinetic_backend import Pose3, Rot3, PinholeCameraCal3DS2, Cal3DS2
 from py_kinetic_backend import PinholeCameraCal3Rational, Cal3Rational
-from system_calibration.IO import read_handeye_bag
 from system_calibration.backend import calib_rm_factor_graph, calib_rm2_factor_graph
 from system_calibration.backend import calibrate_dhe_factor_graph 
-from system_calibration.simulation.components import ArucoCubeTarget, ArucoBoardTarget
+from system_calibration.simulation.components import ArucoCubeTargetV2, ArucoBoardTarget
 from system_calibration.frontend import ArucoDetector
 from system_calibration.utils import calculate_reproj_error 
 
 from calibrate_intrinsic import calibrate_intrinsic, reprojection_plot
 from build_sim_sys import build_sim_sys, read_cam2ee_calib, read_cam_intrinsic
-from read_bags import read_hand_eye_bag_adhoc
+from read_bags import read_hand_eye_bag_adhoc, read_hand_eye_bag
 
 random.seed(5)
 np.set_printoptions(precision=3, suppress=True)
@@ -51,7 +50,6 @@ def calibrate_hand_eye_rm(bag_path):
     # intrinsic = np.array([1742.295, 1741.466, 0, 1031.074, 782.305, -0.28, 0.15, -0.001, -0.001])
 
     # target = ArucoBoardTarget(5, 5, 0.166, 0.033, 100)
-    target = ArucoCubeTarget(1.035)
     detector = ArucoDetector(vis=False)
     pts_all = []
     poses_all = []
@@ -205,15 +203,17 @@ def calibrate_hand_eye_rm2(bag_path, debug=False, file_path='.cam2ee.yaml'):
     intrinsic = read_cam_intrinsic()
 
     # target = ArucoCubeTarget(1.035, use_ids=(50, 100,))
-    target = ArucoCubeTarget(1.035, use_ids=(75,))
+    # target = ArucoCubeTargetV2(0.6561, use_ids=(18,))
+    target = ArucoCubeTargetV2(0.6561, use_ids=(18,))
+    # target = sim.get_component("cube")
     detector = ArucoDetector(vis=False)
     pts_all = []
     hand_poses = []
     eye_poses = []
     K, D = Cal3Rational_to_KD(intrinsic)
-    # for img, pose_msg, _, _, _ in read_handeye_bag(bag_path):
-    yaml_file = "/home/fuhengdeng/data_collection_yaml/09_25/hand_eye.yaml"
-    for idx, (img, hand_pose) in enumerate(read_hand_eye_bag_adhoc(bag_path, yaml_file)):
+    # yaml_file = "/home/fuhengdeng/data_collection_yaml/09_25/hand_eye.yaml"
+    # for idx, (img, hand_pose) in enumerate(read_hand_eye_bag_adhoc(bag_path, yaml_file)):
+    for img, hand_pose in read_hand_eye_bag(bag_path):
         pts = defaultdict(list) 
         corners, ids = detector.detect(img)
         if len(ids) == 0:
@@ -264,7 +264,8 @@ def calibrate_hand_eye_rm2(bag_path, debug=False, file_path='.cam2ee.yaml'):
     # visual evaluation 
     pts_all_2d = []
     pts_all_proj = []
-    for idx, (img, hand_pose) in enumerate(read_hand_eye_bag_adhoc(bag_path, yaml_file)):
+    # for idx, (img, hand_pose) in enumerate(read_hand_eye_bag_adhoc(bag_path, yaml_file)):
+    for idx, (img, hand_pose) in enumerate(read_hand_eye_bag(bag_path)):
         pts = defaultdict(list) 
         corners, ids = detector.detect(img)
         if len(ids) == 0:
@@ -342,5 +343,5 @@ if __name__ == "__main__":
     # bag_name = "/home/fuhengdeng/fuheng.bag"
     # calibrate_hand_eye_dhe(bag_name)
     # calibrate_hand_eye_rm(bag_name)
-    bag_name = "/home/fuhengdeng/test_data/hand_eye.bag"
+    bag_name = "/home/fuhengdeng/test_data/hand_eye_new.bag"
     calibrate_hand_eye_rm2(bag_name, debug=False)

@@ -191,13 +191,22 @@ def solve_joint_calib_2(pts_robot_cam, pts_left_primary, pts_right_primary, lida
         CauchyNoiseModel.create(1.),
         Diagonal.sigmas([1e-2]),
     )
-    tr2tt_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-6, 0.1, 0.1, 0.1]) # x should be parallel
-    base2tr_prior_noise = Diagonal.sigmas([1e-5, 1e-5, 0.1, 1e-4, 1e-4, 1e-4]) # x should be parallel
-    hand_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]) # from robot manual 
+    tr2tt_prior_noise = Diagonal.sigmas([1e-2, 1e-2, 1e-6, 0.1, 0.1, 0.1]) # x should be parallel
+    base2tr_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-1, 1e-4, 1e-4, 1e-4]) # x should be parallel
+    # hand_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]) # from robot manual 
+    hand_prior_noise = Diagonal.sigmas([1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5]) # from robot manual 
     track_prior_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-8, 1e-3, 1e-8, 1e-8]) # large noise in x 
     tt_prior_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-3, 1e-8, 1e-8, 1e-8]) # should only have yaw
     target2tt_prior_noise = Diagonal.sigmas([1e-5, 1, 1e-5, 1e-1, 1e-4, 1e-1]) # should have mainly roll and y and z are unknown. 
     track_between_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8]) # should enforce the track state the same
+
+    # tr2tt_prior_noise = Diagonal.sigmas([1e-3, 1e-3, 1e-6, 0.1, 0.1, 0.1]) # x should be parallel
+    # base2tr_prior_noise = Diagonal.sigmas([1e-2, 1e-2, 1e-2, 1e-4, 1e-4, 1e-4]) # x should be parallel
+    # hand_prior_noise = Diagonal.sigmas([1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5]) # from robot manual 
+    # track_prior_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-8, 1e-3, 1e-8, 1e-8]) # large noise in x 
+    # tt_prior_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-2, 1e-8, 1e-8, 1e-8]) # should only have yaw
+    # target2tt_prior_noise = Diagonal.sigmas([1e-5, 1, 1e-5, 1e-1, 1e-4, 1e-1]) # should have mainly roll and y and z are unknown. 
+    # track_between_noise = Diagonal.sigmas([1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8]) # should enforce the track state the same
 
     # set up initial values for time-invariant variables
     values = Values()
