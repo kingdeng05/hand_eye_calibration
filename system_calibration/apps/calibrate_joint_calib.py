@@ -47,8 +47,10 @@ def dump_result_to_kinetic_yaml(ret, file_path="static_transforms.yaml"):
         update_calib(cfg, ret["track2tt"], "track", "tt")
         update_calib(cfg, ret["lpc2tt"], "camera_left_primary", "tt")
         update_calib(cfg, ret["rpc2tt"], "camera_right_primary", "tt")
-        update_calib(cfg, ret["lpc2tt"] @ sim.calibration["lsc"]["lpc"], "camera_left_secondary", "tt")
-        update_calib(cfg, ret["rpc2tt"] @ sim.calibration["rsc"]["rpc"], "camera_right_secondary", "tt")
+        # update_calib(cfg, ret["lpc2tt"] @ sim.calibration["lsc"]["lpc"], "camera_left_secondary", "tt")
+        # update_calib(cfg, ret["rpc2tt"] @ sim.calibration["rsc"]["rpc"], "camera_right_secondary", "tt")
+        update_calib(cfg, ret["lsc2tt"], "camera_left_secondary", "tt")
+        update_calib(cfg, ret["rsc2tt"], "camera_right_secondary", "tt")
     cfg = {k: float(v) if isinstance(v, float) else v for k, v in cfg.items()}
     with open(file_path, "w") as f:
         yaml.dump(cfg, f) 
@@ -76,6 +78,8 @@ def load_result_from_kinetic_yaml(file_path="static_transforms.yaml"):
     read_extrinsic(ret, "track2tt", "track", "tt")
     read_extrinsic(ret, "lpc2tt", "camera_left_primary", "tt")
     read_extrinsic(ret, "rpc2tt", "camera_right_primary", "tt")
+    read_extrinsic(ret, "lsc2tt", "camera_left_secondary", "tt")
+    read_extrinsic(ret, "rsc2tt", "camera_right_secondary", "tt")
     return ret
     
 def print_reproj_stats(pts_2d, pts_proj):
@@ -500,7 +504,7 @@ def joint_calib(bag_path=None, perturb=False, debug=False):
 def verify_joint_tt(bag_path):
     initials = get_gt()
     ret = load_result_from_kinetic_yaml() 
-    for img_rc, img_lpc, img_rpc, _, _, _, _, _, ee2base_meas, track_tf_meas, _ in get_data(bag_path, extract_lidar_features=False):
+    for img_rc, img_lpc, img_rpc, img_lsc, img_rsc, _, _, _, _, _, _, _, ee2base_meas, track_tf_meas, _ in get_data(bag_path, extract_lidar_features=False):
         # project on the robot camera
         tf_cam2tt = ret["track2tt"] @ track_tf_meas @ ret["base2track"] @ ee2base_meas @ initials["cam2ee"]
         tf_cam2tt_init = initials["track2tt"] @ track_tf_meas @ initials["base2track"] @ ee2base_meas @ initials["cam2ee"] 
@@ -517,11 +521,25 @@ def verify_joint_tt(bag_path):
         cv.imshow("vis", img_lpc)
         cv.waitKey(0)
 
+        # project on the left secondary camera
+        img_lsc = turntable_projection(img_lsc, ret["lsc2tt"], initials["intrinsic_lsc"], color=(0, 255, 0), tt_radius=2.75, show_axes=False)
+        img_lsc = turntable_projection(img_lsc, initials["lsc2tt"], initials["intrinsic_lsc"], color=(0, 0, 255), tt_radius=2.75, show_axes=False)
+        img_lsc = resize_img(img_lsc, 0.5)
+        cv.imshow("vis", img_lsc)
+        cv.waitKey(0)
+
         # project on the right primary camera
         img_rpc = turntable_projection(img_rpc, ret["rpc2tt"], initials["intrinsic_rpc"], color=(0, 255, 0), tt_radius=2.75, show_axes=False)
         img_rpc = turntable_projection(img_rpc, initials["rpc2tt"], initials["intrinsic_rpc"], color=(0, 0, 255), tt_radius=2.75, show_axes=False)
         img_rpc = resize_img(img_rpc, 0.5)
         cv.imshow("vis", img_rpc)
+        cv.waitKey(0)
+
+        # project on the right secondary camera
+        img_rsc = turntable_projection(img_rsc, ret["rsc2tt"], initials["intrinsic_rsc"], color=(0, 255, 0), tt_radius=2.75, show_axes=False)
+        img_rsc = turntable_projection(img_rsc, initials["rsc2tt"], initials["intrinsic_rsc"], color=(0, 0, 255), tt_radius=2.75, show_axes=False)
+        img_rsc = resize_img(img_lpc, 0.5)
+        cv.imshow("vis", img_rsc)
         cv.waitKey(0)
 
 
