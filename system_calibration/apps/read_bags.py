@@ -100,20 +100,21 @@ def read_joint_bag(bag_name):
     sim = build_sim_sys()
     topics = [
         "/tt/system_stopped",
-        # "/tt/stopped",
         "/camera/image_raw/compressed",
         "/robot_0/robot_base/end_effector_pose",
         "/track_0/position_actual",
         "/tt/control/angle_actual",
         "/stereo/left_primary/image_raw/compressed",
         "/stereo/right_primary/image_raw/compressed",
-        "/lidar_0/downsampled/velodyne_points"
+        "/lidar_0/downsampled/velodyne_points",
+        "/stereo/left_secondary/image_raw/compressed",
+        "/stereo/right_secondary/image_raw/compressed",
     ]
     reader = TopicTriggerBagReader(bag_name, *topics)
     for idx, msgs in enumerate(reader.read()):
         lidar_pts = crop_lidar_roi(pc2_msg_to_array(msgs[7][1]), sim.calibration["lidar"]["tt"])
         yield msg_to_img(msgs[1][1], RGB=False), pose_msg_to_tf(msgs[2][1].pose), msgs[3][1].data, msgs[4][1].data, msg_to_img(msgs[5][1], RGB=False), \
-              msg_to_img(msgs[6][1], RGB=False), lidar_pts 
+              msg_to_img(msgs[6][1], RGB=False), lidar_pts, msg_to_img(msgs[8][1], RGB=False), msg_to_img(msgs[9][1], RGB=False)
 
 def read_joint_bag_adhoc(bag_name, pose_yaml):
     pose_cfg = yaml.safe_load(open(pose_yaml))

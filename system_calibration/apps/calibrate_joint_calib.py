@@ -97,12 +97,16 @@ def get_gt():
     gt["base2track"] = sim.calibration["robot"]["track"] 
     gt["intrinsic"] = sim("camera").intrinsic
     gt["intrinsic_lpc"] = sim("lpc").intrinsic 
+    gt["intrinsic_lsc"] = sim("lsc").intrinsic 
     gt["intrinsic_rpc"] = sim("rpc").intrinsic 
+    gt["intrinsic_rsc"] = sim("rsc").intrinsic 
     gt["cam2ee"] = sim.calibration["camera"]["robot"] 
     gt["target2tt_0"] = sim.calibration["cube"]["tt"] 
     gt["lpc2tt"] = sim.calibration["lpc"]["tt"] 
     gt["rpc2tt"] = sim.calibration["rpc"]["tt"] 
     gt["lidar2tt"] = sim.calibration["lidar"]["tt"] 
+    gt["lsc2tt"] = sim.get_transform("lsc", "tt") 
+    gt["rsc2tt"] = sim.get_transform("rsc", "tt") 
     return gt
 
 def make_pts_pair(pts_2d, pts_3d):
@@ -226,21 +230,26 @@ def read_bag(bag_path, extract_lidar_features=True):
         corners, ids = detector.detect(data[0]) 
         corners_lpc, ids_lpc = detector.detect(data[4]) 
         corners_rpc, ids_rpc = detector.detect(data[5]) 
+        corners_lsc, ids_lsc = detector.detect(data[7]) 
+        corners_rsc, ids_rsc = detector.detect(data[8]) 
         if len(ids) == 0 and len(ids_lpc) == 0 and len(ids_rpc) == 0:
             continue
         if tt_init is None:
             tt_init = data[3]
         tt_tf = tt_reading_to_transform(data[3] - tt_init) 
-        # tt_tf = tt_reading_to_transform(data[3]) 
         tf_lidar2target = tf_tt2target @ np.linalg.inv(tt_tf) @ tf_lidar2tt
         lidar_features = get_3d_surfel_matches(data[6], targets, tf_lidar2target) if extract_lidar_features else None
         yield data[0], \
               data[4], \
               data[5], \
+              data[7], \
+              data[8], \
               data[6], \
               get_2d_3d_matches(corners, ids, targets), \
               get_2d_3d_matches(corners_lpc, ids_lpc, targets), \
               get_2d_3d_matches(corners_rpc, ids_rpc, targets), \
+              get_2d_3d_matches(corners_lsc, ids_lsc, targets), \
+              get_2d_3d_matches(corners_rsc, ids_rsc, targets), \
               lidar_features, \
               data[1], \
               track_reading_to_transform(data[2]), \
@@ -276,11 +285,6 @@ def tt_reading_to_transform(tt_reading):
     tt_reading = wrap_around_rad(tt_reading) 
     vec = [0, 0, tt_reading, 0, 0, 0]
     return euler_vec_to_mat(vec) 
-
-def append_dict_list(d, key, val):
-    if key not in d:
-        d[key] = [] 
-    d[key].append(val)
 
 def get_data(bag_path, **kwargs):
     # read data in either sim mode or actual bag
@@ -361,26 +365,32 @@ def lidar2cam_proj(pts_lidar, img, tf_cam2lidar, tf_cam2lidar_init, intrinsic, d
 def joint_calib(bag_path=None, perturb=False, debug=False):
     track_tfs = []
     tt_tfs = []
-    pts_rc_all, pts_lpc_all, pts_rpc_all = [], [], []
+    pts_rc_all, pts_lpc_all, pts_rpc_all, pts_lsc_all, pts_rsc_all = [], [], [], [], []
     lidar_features = []
     initials = get_gt()
 
     rc_recorder = VideoRecorder(2, filename="rc.mp4")
     lpc_recorder = VideoRecorder(2, filename="lpc.mp4")
     rpc_recorder = VideoRecorder(2, filename="rpc.mp4")
+    lsc_recorder = VideoRecorder(2, filename="lsc.mp4")
+    rsc_recorder = VideoRecorder(2, filename="rsc.mp4")
     lidar_recorder = VideoRecorder(2, filename="lidar.mp4")
 
-    for idx, (_, _, _, _, pts_rc, pts_lpc, pts_rpc, lidar_feature, hand_pose, track_tf, tt_tf) in enumerate(get_data(bag_path)):
+    for idx, (_, _, _, _, _, _, pts_rc, pts_lpc, pts_rpc, pts_lsc, pts_rsc, lidar_feature, hand_pose, track_tf, tt_tf) in enumerate(get_data(bag_path)):
         track_tfs.append(track_tf)
         tt_tfs.append(tt_tf)
         pts_rc_all.append(pts_rc)
         pts_lpc_all.append(pts_lpc)
         pts_rpc_all.append(pts_rpc)
+        pts_lsc_all.append(pts_lsc)
+        pts_rsc_all.append(pts_rsc)
         lidar_features.append(lidar_feature)
         print(f"frame {idx}")
         print(f"    fetching {len(pts_rc['2d'])} features for robot camera")
         print(f"    fetching {len(pts_lpc['2d'])} features for left primary camera")
+        print(f"    fetching {len(pts_lsc['2d'])} features for left secondary  camera")
         print(f"    fetching {len(pts_rpc['2d'])} features for right primary camera")
+        print(f"    fetching {len(pts_rsc['2d'])} features for right secondary camera")
         print(f"    fetching {len(lidar_feature['pts'])} features for lidar")
     initials["ee2base"] = hand_pose # note that the hand is not moving during calibration
 
@@ -400,7 +410,7 @@ def joint_calib(bag_path=None, perturb=False, debug=False):
         pert = initials
 
     print("frontend features collection finished, running optimizatin...")
-    ret = solve_joint_calib_2(pts_rc_all, pts_lpc_all, pts_rpc_all, lidar_features, track_tfs, tt_tfs, pert)
+    ret = solve_joint_calib_2(pts_rc_all, pts_lpc_all, pts_rpc_all, pts_lsc_all, pts_rsc_all, lidar_features, track_tfs, tt_tfs, pert)
     for key, val in ret.items():
         if "2" in key: # only the static transforms
             print(f"diff of {key}: ", mat_to_euler_vec(np.linalg.inv(initials[key]) @ val))
@@ -411,12 +421,13 @@ def joint_calib(bag_path=None, perturb=False, debug=False):
     # evaluate the result
     pts_2d_rc, pts_proj_rc = [], [] 
     pts_2d_lpc, pts_proj_lpc = [], []
+    pts_2d_lsc, pts_proj_lsc = [], []
     pts_2d_rpc, pts_proj_rpc = [], []
-    for idx, ((img_rc, img_lpc, img_rpc, pts_lidar, pts_rc, pts_lpc, pts_rpc, _, ee2base_meas, track_tf_meas, tt_tf_meas), track_tf, tt_tf) in enumerate(zip(get_data(bag_path, extract_lidar_features=False), ret["track_tfs"], ret["tt_tfs"])):
+    pts_2d_rsc, pts_proj_rsc = [], []
+    for idx, ((img_rc, img_lpc, img_rpc, img_lsc, img_rsc, pts_lidar, pts_rc, pts_lpc, pts_rpc, pts_lsc, pts_rsc, _, ee2base_meas, track_tf_meas, tt_tf_meas), track_tf, tt_tf) in enumerate(zip(get_data(bag_path, extract_lidar_features=False), ret["track_tfs"], ret["tt_tfs"])):
         tf_target2tt_i = tt_tf @ ret["target2tt_0"] 
 
         # project on the robot camera
-        # tf_cam2tt = ret["track2tt"] @ track_tf @ ret["base2track"] @ ret["ee2base"] @ initials["cam2ee"]
         tf_cam2tt = ret["track2tt"] @ track_tf @ ret["base2track"] @ ee2base_meas @ initials["cam2ee"]
         tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt
         tf_cam2tt_init = initials["track2tt"] @ track_tf @ initials["base2track"] @ ret["ee2base"] @ initials["cam2ee"] 
@@ -436,6 +447,16 @@ def joint_calib(bag_path=None, perturb=False, debug=False):
         pts_2d_lpc.append(pts_2d)
         pts_proj_lpc.append(pts_proj) 
 
+        # project on the left secondary camera
+        tf_cam2tt = ret["lsc2tt"] 
+        tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt 
+        tf_cam2tt_init = initials["lsc2tt"] 
+        pts_2d, pts_proj, img_lsc_vis = evaluate_reproj(img_lsc, pts_lsc["3d"], pts_lsc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
+                                                        initials["intrinsic_lsc"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
+        lsc_recorder.add_frame(img_lsc_vis, text=f"frame-{idx}")
+        pts_2d_lsc.append(pts_2d)
+        pts_proj_lsc.append(pts_proj) 
+
         # project on the right primary camera
         tf_cam2tt = ret["rpc2tt"] 
         tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt 
@@ -446,10 +467,20 @@ def joint_calib(bag_path=None, perturb=False, debug=False):
         pts_2d_rpc.append(pts_2d)
         pts_proj_rpc.append(pts_proj) 
 
+        # project on the right secondary camera
+        tf_cam2tt = ret["rsc2tt"] 
+        tf_cam2target = np.linalg.inv(tf_target2tt_i) @ tf_cam2tt 
+        tf_cam2tt_init = initials["rsc2tt"]
+        pts_2d, pts_proj, img_rsc_vis = evaluate_reproj(img_rsc, pts_rsc["3d"], pts_rsc["2d"], tf_cam2target, tf_cam2tt, tf_cam2tt_init, \
+                                                        initials["intrinsic_rsc"], tt_tf, track_tf, tt_tf_meas, track_tf_meas, debug)
+        rsc_recorder.add_frame(img_rsc_vis, text=f"frame-{idx}")
+        pts_2d_rsc.append(pts_2d)
+        pts_proj_rsc.append(pts_proj) 
+
         # add lidar projection on one of the primary cameras
-        tf_lidar2cam = np.linalg.inv(ret["lidar2tt"]) @ ret["lpc2tt"]
-        tf_lidar2cam_init = np.linalg.inv(initials["lidar2tt"]) @ initials["lpc2tt"]
-        img_lidar = lidar2cam_proj(pts_lidar, img_lpc, tf_lidar2cam, tf_lidar2cam_init, initials["intrinsic_lpc"], debug=debug)
+        tf_lidar2cam = np.linalg.inv(ret["lidar2tt"]) @ ret["lsc2tt"]
+        tf_lidar2cam_init = np.linalg.inv(initials["lidar2tt"]) @ initials["lsc2tt"]
+        img_lidar = lidar2cam_proj(pts_lidar, img_lsc, tf_lidar2cam, tf_lidar2cam_init, initials["intrinsic_lsc"], debug=debug)
         lidar_recorder.add_frame(img_lidar, text=f"frame-{idx}")
 
     print("robot camera statistics:")
@@ -458,6 +489,10 @@ def joint_calib(bag_path=None, perturb=False, debug=False):
     print_reproj_stats(pts_2d_lpc, pts_proj_lpc)
     print("right primary camera statistics:")
     print_reproj_stats(pts_2d_rpc, pts_proj_rpc)
+    print("left secondary camera statistics:")
+    print_reproj_stats(pts_2d_lsc, pts_proj_lsc)
+    print("right secondary camera statistics:")
+    print_reproj_stats(pts_2d_rsc, pts_proj_rsc)
 
     # save result to yaml file that's interpretable by kinetic software
     dump_result_to_kinetic_yaml(ret)
@@ -494,8 +529,8 @@ if __name__ == "__main__":
     # calibrate with lidar
     # joint_calib(bag_path="/home/fuhengdeng/test_data/base_tt.bag", perturb=False, debug=False)
     # joint_calib(bag_path="/home/fuhengdeng/test_data/joint_calib_2023-10-09-15-06-23.bag", perturb=False, debug=False)
-    # joint_calib(bag_path="/home/fuhengdeng/test_data/joint_calib_2023-10-11-17-20-01.bag", perturb=False, debug=False)
+    joint_calib(bag_path="/home/fuhengdeng/test_data/joint_calib_2023-10-11-17-20-01.bag", perturb=False, debug=False)
 
     # verify joint tt calib
     # verify_joint_tt("/home/fuhengdeng/test_data/joint_calib_verify.bag")
-    verify_joint_tt("/home/fuhengdeng/test_data/joint_calib_2023-10-11-17-20-01.bag")
+    # verify_joint_tt("/home/fuhengdeng/test_data/joint_calib_2023-10-11-17-20-01.bag")
