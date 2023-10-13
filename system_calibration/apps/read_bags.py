@@ -34,7 +34,7 @@ def read_hand_eye_bag(bag_name):
     for idx, msgs in enumerate(reader.read()):
         # only the first 30 frames are in the same target
         # if idx < 30:
-        if idx >= 30:
+        if idx >= 30 and idx < 60:
             yield msg_to_img(msgs[1][1], RGB=False), pose_msg_to_tf(msgs[2][1].pose) 
 
 # TODO: this is get the robot pose from pose yaml

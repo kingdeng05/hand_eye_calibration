@@ -204,7 +204,7 @@ def calibrate_hand_eye_rm2(bag_path, debug=False, file_path='.cam2ee.yaml'):
 
     # target = ArucoCubeTarget(1.035, use_ids=(50, 100,))
     # target = ArucoCubeTargetV2(0.6561, use_ids=(18,))
-    target = ArucoCubeTargetV2(0.6561, use_ids=(18,))
+    target = ArucoCubeTargetV2(0.6561, use_ids=(9, 18, 27, 36))
     # target = sim.get_component("cube")
     detector = ArucoDetector(vis=False)
     pts_all = []
@@ -224,8 +224,6 @@ def calibrate_hand_eye_rm2(bag_path, debug=False, file_path='.cam2ee.yaml'):
             if pts_target is None:
                 continue
             for pt_idx, (pt_2d, pt_3d) in enumerate(zip(corner, pts_target)):
-                if pt_idx not in (0, 1):
-                    continue 
                 pts["2d"].append(pt_2d) 
                 pts["3d"].append(pt_3d)
                 pts_3d.append(pt_3d) 
@@ -343,5 +341,6 @@ if __name__ == "__main__":
     # bag_name = "/home/fuhengdeng/fuheng.bag"
     # calibrate_hand_eye_dhe(bag_name)
     # calibrate_hand_eye_rm(bag_name)
-    bag_name = "/home/fuhengdeng/test_data/hand_eye_new.bag"
+    # bag_name = "/home/fuhengdeng/test_data/hand_eye_new.bag"
+    bag_name = "/home/fuhengdeng/test_data/hand_eye_flatter.bag"
     calibrate_hand_eye_rm2(bag_name, debug=False)
