@@ -58,6 +58,6 @@ def get_base2tt_transform_diff(file_path, gt_file_path):
 
 
 if __name__ == "__main__":
-    # test("static_transforms.yaml", "static_transforms_gt.yaml")
-    get_base2tt_transform_diff("static_transforms.yaml", "static_transforms_gt.yaml")
+    test("static_transforms.yaml", "static_transforms_gt.yaml")
+    # get_base2tt_transform_diff("static_transforms.yaml", "static_transforms_gt.yaml")
 
