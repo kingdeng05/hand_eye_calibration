@@ -39,9 +39,12 @@ def solve_intrinsic_rational(intrinsic_vec, poses, pts_2d, pts_3d):
                 False 
             ))
 
-
+    print("graph has ", len(graph), "factors")
     optimizer = LevenbergMarquardtOptimizer(graph, initial)
     result = optimizer.optimize()
+    # for idx, factor in enumerate(graph):
+    #     print(f"{idx} factor error: {factor.error(initial)} => {factor.error(result)}")
+
     print("error change: {} -> {}".format(graph.error(initial), graph.error(result)))
 
     return result.atCal3DS2(intrinsic_key).vector(), \

@@ -285,6 +285,6 @@ if __name__ == "__main__":
     # bag_name = "/home/fuhengdeng/test_data/hand_eye_new_cube_more_angle.bag"
     bag_name = "/home/fuhengdeng/test_data/hand_eye_flatter.bag"
     # bag_name = "/home/fuhengdeng/fuheng.bag"
-    # calibrate_intrinsic(bag_name, debug=False)
-    calibrate_intrinsic_rational(bag_name)
+    calibrate_intrinsic(bag_name, debug=False)
+    # calibrate_intrinsic_rational(bag_name)
     
