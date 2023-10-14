@@ -13,6 +13,7 @@ from system_calibration.simulation.components import ArucoBoardTarget
 from system_calibration.utils import calculate_reproj_error
 from system_calibration.IO import read_handeye_bag
 from system_calibration.backend import solve_intrinsic_rational, IntrinsicCailbrator
+from system_calibration.utils import transfer_3d_pts_to_img, resize_img 
 
 from read_bags import read_intrinsic_bag
 from build_sim_sys import read_cam_intrinsic, build_sim_sys
@@ -186,16 +187,29 @@ def Cal3Rational_to_KD(intr):
 def Cal3DS2_to_KD(intr):
     return np.array([[intr[0], intr[2], intr[3]], [0, intr[1], intr[4]], [0, 0, 1]]), intr[5:].reshape(-1, 4)
 
+def Cal3Rational_to_Cal3DS2(intr):
+    intr = np.array(intr) 
+    intr = np.insert(intr, 2, 0)
+    return intr[:9]
+
 def calibrate_intrinsic_rational(bag_path):
     targets = {
-        50: ArucoBoardTarget(5, 5, 0.166, 0.033, 50),
-        100: ArucoBoardTarget(5, 5, 0.166, 0.033, 100)
+        0: ArucoBoardTarget(3, 3, 0.166, 0.033, 0),
+        9: ArucoBoardTarget(3, 3, 0.166, 0.033, 9),
+        18: ArucoBoardTarget(3, 3, 0.166, 0.033, 18),
+        27: ArucoBoardTarget(3, 3, 0.166, 0.033, 27),
+        36: ArucoBoardTarget(3, 3, 0.166, 0.033, 36)
     }
     detector = ArucoDetector(vis=False)
     pts_3d_all, pts_2d_all = [], []
     cam_poses_all = []
-    intr_vec = read_cam_intrinsic() 
-    for _, (img, _, _, _, _) in enumerate(read_handeye_bag(bag_path)):
+    intr_vec = build_sim_sys()("camera").intrinsic 
+    intr_vec = Cal3Rational_to_Cal3DS2(intr_vec)
+    K, D = Cal3DS2_to_KD(intr_vec)
+    print(K, D)
+    for idx, img in enumerate(read_intrinsic_bag(bag_path)):
+        # if idx >= 5: #  or idx < 1: 
+        #     continue 
         # 3d pts (n, 3), 2d pts (n, 1, 2)
         corners, ids = detector.detect(img)
         pts_3d = defaultdict(list) 
@@ -204,23 +218,34 @@ def calibrate_intrinsic_rational(bag_path):
             for corner, id in zip(corners, ids):
                 ret = target.find_3d_pts_by_id(id)
                 if ret is not None: 
-                    pts_3d[target_id].append(ret) 
-                    pts_2d[target_id].append(corner)
+                    pts_3d[target_id].append([ret[0]]) 
+                    pts_2d[target_id].append([corner[0]])
+                    # pts_3d[target_id].append(ret) 
+                    # pts_2d[target_id].append(corner)
         for key, pts_3d_target in pts_3d.items():
-            if len(pts_3d_target) >= 3:
+            if len(pts_3d_target) >= 5:
                 pts_3d_target = np.vstack(pts_3d_target, dtype=np.float32)
                 pts_2d_target = np.vstack(pts_2d[key], dtype=np.float32)
                 pts_2d_target = pts_2d_target.reshape(len(pts_2d_target), 1, 2)
-                pts_3d_all.append(pts_3d_target)
-                pts_2d_all.append(pts_2d_target)
                 # get the initial poses
-                pts_3d_target = np.array(pts_3d_target, dtype=np.float32)
-                pts_2d_target = np.array(pts_2d_target, dtype=np.float32)
-                K, D = Cal3DS2_to_KD(intr_vec)
                 _, rvec, tvec = cv.solvePnP(pts_3d_target, pts_2d_target, K, D)
                 R = cv.Rodrigues(rvec)[0]
                 cam_pose = Pose3(Rot3(R), tvec).matrix()
                 cam_poses_all.append(cam_pose)
+                pts_2d_tmp = pts_2d_target.reshape(len(pts_2d_target), 2)
+                pts_proj = transfer_3d_pts_to_img(pts_3d_target, np.linalg.inv(cam_pose), intr_vec, model="Cal3DS2")
+                print("proj error: ", np.linalg.norm(pts_proj - pts_2d_tmp, axis=1).mean())
+                img_vis = img.copy()
+                for pt_proj, pt_2d in zip(pts_proj, pts_2d_tmp): 
+                    cv.circle(img_vis, tuple(pt_2d.astype(int)), 4, (0, 255, 0))
+                    cv.circle(img_vis, tuple(pt_proj.astype(int)), 4, (0, 0, 255))
+                    cv.line(img_vis, tuple(pt_proj.astype(int)), tuple(pt_2d.astype(int)), (255, 0, 0), 3)
+                img_vis = resize_img(img_vis, 0.5)
+                cv.imshow("vis", img_vis)
+                cv.waitKey(0)
+
+                pts_3d_all.append(pts_3d_target.astype(np.float64))
+                pts_2d_all.append(pts_2d_target.reshape(len(pts_2d_target), 2).astype(np.float64))
 
     print(f"Using {len(pts_3d_all)} for intrinsic calibration")
     intr_opt, poses_opt = solve_intrinsic_rational(intr_vec, cam_poses_all, pts_2d_all, pts_3d_all)
@@ -260,6 +285,6 @@ if __name__ == "__main__":
     # bag_name = "/home/fuhengdeng/test_data/hand_eye_new_cube_more_angle.bag"
     bag_name = "/home/fuhengdeng/test_data/hand_eye_flatter.bag"
     # bag_name = "/home/fuhengdeng/fuheng.bag"
-    calibrate_intrinsic(bag_name, debug=False)
-    # calibrate_intrinsic_rational(bag_name)
+    # calibrate_intrinsic(bag_name, debug=False)
+    calibrate_intrinsic_rational(bag_name)
     
