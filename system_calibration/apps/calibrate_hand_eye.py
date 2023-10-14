@@ -203,8 +203,8 @@ def calibrate_hand_eye_rm2(bag_path, debug=False, file_path='.cam2ee.yaml'):
     intrinsic = read_cam_intrinsic()
 
     # target = ArucoCubeTarget(1.035, use_ids=(50, 100,))
-    # target = ArucoCubeTargetV2(0.6561, use_ids=(18,))
-    target = ArucoCubeTargetV2(0.6561, use_ids=(9, 18, 27, 36))
+    # target = ArucoCubeTargetV2(0.6561, use_ids=(9, 18, 27, 36))
+    target = ArucoCubeTargetV2(0.6561, use_ids=(18,)) # using only one side seems to be best
     # target = sim.get_component("cube")
     detector = ArucoDetector(vis=False)
     pts_all = []
@@ -342,5 +342,5 @@ if __name__ == "__main__":
     # calibrate_hand_eye_dhe(bag_name)
     # calibrate_hand_eye_rm(bag_name)
     # bag_name = "/home/fuhengdeng/test_data/hand_eye_new.bag"
-    bag_name = "/home/fuhengdeng/test_data/hand_eye_flatter.bag"
+    bag_name = "/home/fuhengdeng/test_data/hand_eye_flatter_again.bag"
     calibrate_hand_eye_rm2(bag_name, debug=False)

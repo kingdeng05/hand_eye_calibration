@@ -548,7 +548,8 @@ if __name__ == "__main__":
     # joint_calib(bag_path="/home/fuhengdeng/test_data/base_tt.bag", perturb=False, debug=False)
     # joint_calib(bag_path="/home/fuhengdeng/test_data/joint_calib_2023-10-09-15-06-23.bag", perturb=False, debug=False)
     # joint_calib(bag_path="/home/fuhengdeng/test_data/joint_calib_2023-10-11-17-20-01.bag", perturb=False, debug=False)
-    joint_calib(bag_path="/home/fuhengdeng/test_data/joint_calib_verify.bag", perturb=False, debug=False)
+    # joint_calib(bag_path="/home/fuhengdeng/test_data/joint_calib_verify.bag", perturb=False, debug=False)
+    joint_calib(bag_path="/home/fuhengdeng/test_data/joint_calib_2023-10-13-12-05-32.bag", perturb=False, debug=False)
 
     # verify joint tt calib
     # verify_joint_tt("/home/fuhengdeng/test_data/joint_calib_verify.bag")
